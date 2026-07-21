@@ -12,9 +12,17 @@ fn main() {
 
 ## Quick Start
 
+**Linux / macOS:**
 ```bash
 git clone https://github.com/zein-lang/zein && cd zein
 ./install.sh       # installs deps + builds from source
+zein hello.zn      # compile and run
+```
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/zein-lang/zein && cd zein
+.\install.ps1      # installs deps + builds from source
 zein hello.zn      # compile and run
 ```
 
@@ -55,7 +63,7 @@ fn main() {
 
 ## Install
 
-See [install.sh](install.sh) — detects your distro (Debian, Fedora, Arch, NixOS, macOS) and installs dependencies automatically.
+See [install.sh](install.sh) for Linux/macOS or [install.ps1](install.ps1) for Windows. Both scripts detect your platform and install dependencies automatically.
 
 ## VS Code Extension
 

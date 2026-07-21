@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zein — a minimal, typed language that compiles to JS</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --orange: #d29922;
+      --pink: #f778ba;
+      --purple: #bc8cff;
+      --cyan: #39d2c0;
+      --font: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+      --sidebar: 250px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.7;
+      font-size: 16px;
+      display: flex;
+    }
+
+    nav.sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: var(--sidebar);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      overflow-y: auto;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    nav.sidebar .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    nav.sidebar .logo img { width: 32px; height: 32px; border-radius: 6px; }
+    nav.sidebar .logo span { font-weight: 700; font-size: 1.2rem; }
+    nav.sidebar .logo span em { color: var(--accent); font-style: normal; }
+    nav.sidebar a {
+      display: block;
+      padding: 5px 20px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.15s;
+    }
+    nav.sidebar a:hover { color: var(--text); }
+    nav.sidebar .section {
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 16px 20px 4px;
+    }
+
+    main {
+      margin-left: var(--sidebar);
+      max-width: 860px;
+      padding: 48px 48px 80px;
+      width: 100%;
+    }
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      nav.sidebar {
+        position: static;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 12px 0;
+      }
+      nav.sidebar .logo { padding: 0 16px 12px; }
+      nav.sidebar a, nav.sidebar .section { padding: 4px 16px; }
+      main { margin-left: 0; padding: 24px 16px 48px; }
+    }
+
+    h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 48px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 28px 0 8px; }
+    h4 { font-size: 0.95rem; font-weight: 600; margin: 20px 0 6px; color: var(--text); }
+    p { margin: 12px 0; color: var(--muted); }
+    a { color: var(--accent); }
+    ul, ol { margin: 8px 0 8px 20px; color: var(--muted); }
+    li { margin: 4px 0; }
+
+    .hero { text-align: center; padding: 40px 0 32px; }
+    .hero img {
+      display: block;
+      margin: 0 auto 16px;
+      width: 100px; height: 100px;
+      border-radius: 20px;
+      background: var(--surface);
+      padding: 6px;
+    }
+    .hero h1 em { color: var(--accent); font-style: normal; }
+    .hero .tagline {
+      font-family: var(--font);
+      color: var(--green);
+      font-size: 1rem;
+      margin: 4px 0 20px;
+    }
+    .hero p { max-width: 540px; margin: 0 auto 24px; }
+
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .btn.ghost { background: transparent; border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; }
+
+    pre, .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-family: var(--font);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin: 12px 0;
+      position: relative;
+    }
+    .code-block .lang-label {
+      position: absolute;
+      top: 6px; right: 10px;
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .kw    { color: var(--pink); }
+    .fn    { color: var(--accent); }
+    .type  { color: var(--green); }
+    .str   { color: var(--orange); }
+    .num   { color: #79c0ff; }
+    .op    { color: var(--muted); }
+    .comment { color: var(--muted); font-style: italic; }
+    .builtin { color: var(--cyan); }
+    .var   { color: var(--text); }
+
+    .info {
+      background: var(--surface);
+      border-left: 3px solid var(--accent);
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+    .info strong { color: var(--accent); }
+    .info.tip { border-left-color: var(--green); }
+    .info.tip strong { color: var(--green); }
+    .info.warn { border-left-color: var(--orange); }
+    .info.warn strong { color: var(--orange); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .grid.wide { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card h4 { font-size: 0.95rem; margin-bottom: 4px; }
+    .card p  { font-size: 0.8rem; margin: 0; }
+
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .showcase-grid .code-block { margin: 0; }
+    @media (max-width: 700px) { .showcase-grid { grid-template-columns: 1fr; } }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { font-family: var(--font); font-size: 0.85rem; }
+
+    .cmd {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      margin: 8px 0;
+    }
+    .cmd .prompt { color: var(--green); }
+    .cmd .text { color: var(--text); }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin: 16px 0;
+    }
+    .two-col h4 { margin-top: 0; }
+    @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+    footer {
+      text-align: center;
+      padding: 32px 0 16px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 48px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo">
+    <img src="images/zein-logo.png" alt="Zein">
+    <span><em>Zein</em></span>
+  </div>
+  <div class="section">About</div>
+  <a href="#why">Why Zein?</a>
+  <a href="#philosophy">Philosophy &amp; Goals</a>
+  <div class="section">Getting Started</div>
+  <a href="#install">Install</a>
+  <a href="#quickstart">Quick Start</a>
+  <div class="section">Language Tour</div>
+  <a href="#imports">Imports &amp; Std Lib</a>
+  <a href="#functions">Functions</a>
+  <a href="#variables">Variables</a>
+  <a href="#types">Types</a>
+  <a href="#conditionals">Conditionals &amp; else-if</a>
+  <a href="#loops">Loops</a>
+  <a href="#records">Records</a>
+  <a href="#arrays">Arrays</a>
+  <a href="#methods">Methods &amp; Fields</a>
+  <a href="#matching">Pattern Matching</a>
+  <a href="#pipe">Pipe Operator</a>
+  <a href="#lambdas">Lambdas</a>
+  <a href="#builtins">Built-ins</a>
+  <div class="section">Showcase</div>
+  <a href="#showcase">Example Programs</a>
+  <div class="section">Reference</div>
+  <a href="#syntax">Syntax Reference</a>
+  <a href="#operators">Operators</a>
+  <a href="#vscode">VS Code</a>
+</nav>
+
+<main>
+
+<header class="hero">
+  <img src="images/zein-logo.png" alt="Zein logo">
+  <h1><em>Zein</em></h1>
+  <p class="tagline">Learn Once, Practice Forever</p>
+  <p>A minimal, statically-typed language with Go-like syntax, Hindley-Milner inference, and mutation — compiles to JavaScript. No runtime, no shim, just Node.js.</p>
+  <a href="#why" class="btn">Why Zein?</a>
+  <a href="#install" class="btn ghost">Get Started</a>
+</header>
+
+<section id="why">
+  <h2>Why Zein?</h2>
+
+  <p>Most programming languages ask you to choose between two tradeoffs:</p>
+
+  <div class="two-col">
+    <div>
+      <h4>Powerful but complex</h4>
+      <p>Languages like Rust, C++, and Haskell are incredibly capable, but they take months or years to master. The cognitive overhead of lifetimes, templates, or monads gets in the way of writing simple programs. You spend more time fighting the language than solving your problem.</p>
+    </div>
+    <div>
+      <h4>Simple but opaque</h4>
+      <p>Languages like Python and JavaScript are easy to start with, but they hide how the computer works. There's no compiler to catch mistakes — you find bugs at runtime. You never learn how a language is implemented because the implementation is millions of lines of C code.</p>
+    </div>
+  </div>
+
+  <p><strong>Zein is neither.</strong> It's a real, typed, compiled language that you can understand completely — every part of it, from tokenizer to code generator — in a single afternoon.</p>
+
+  <p>The name comes from <em>zen</em> — simplicity, clarity, focus. Every feature in Zein exists because it's needed. Nothing more.</p>
+
+  <h3>Why not just use Go? Or Elm? Or OCaml?</h3>
+  <p>Go is simple but its type system is weak — no generics (or recently added but clunky), no algebraic types, no inference. Elm is elegant but tied to a UI framework and has no mutation. OCaml is powerful but its syntax is unfamiliar and its ecosystem is niche.</p>
+
+  <p>Zein takes the best ideas and distills them:</p>
+
+  <ul>
+    <li><strong>Go's syntax</strong> — braces, types after names, no semicolons. Familiar from the start.</li>
+    <li><strong>Hindley-Milner inference</strong> — like Elm, OCaml, Haskell. Types are inferred, never in your way.</li>
+    <li><strong>Algebraic data types + pattern matching</strong> — like Rust, OCaml, Haskell. Express complex data naturally.</li>
+    <li><strong>Mutable by default</strong> — like Go. No <code>mut</code> noise. Just reassign.</li>
+    <li><strong>Compiles to clean JS</strong> — run anywhere Node runs. No VM, no runtime, no dependencies.</li>
+  </ul>
+
+  <div class="info tip"><strong>The whole compiler is ~3000 lines of Gleam code.</strong> Read it. Modify it. Learn how compilers work by working on one.</div>
+
+  <h3>Who is Zein for?</h3>
+  <div class="grid wide">
+    <div class="card"><h4>Students learning compilers</h4><p>Read every phase — lexing, parsing, type inference, code generation — in one sitting.</p></div>
+    <div class="card"><h4>Hobbyists who want a language they own</h4><p>Not someone else's 20-year-old codebase. A language you can actually finish.</p></div>
+    <div class="card"><h4>Teachers looking for a classroom language</h4><p>Small enough to teach in a semester. Practical enough to write real programs.</p></div>
+    <div class="card"><h4>Anyone tired of over-engineered tools</h4><p>Zein prioritizes simplicity over everything. If a feature doesn't pull its weight, it's removed.</p></div>
+  </div>
+</section>
+
+<section id="philosophy">
+  <h2>Philosophy &amp; Goals</h2>
+
+  <p>Zein was designed around a few core beliefs about what a programming language should be.</p>
+
+  <h3>Design Principles</h3>
+  <div class="grid">
+    <div class="card"><h4>Minimal core</h4><p>If, for, while, match, pipe, return, records, lists — everything else is a library. Every feature must earn its place.</p></div>
+    <div class="card"><h4>Mutable by default</h4><p>No <code>mut</code> keyword. No immutability dogma. Variables are just boxes — put a new value in when you need to.</p></div>
+    <div class="card"><h4>Static typing, inferred</h4><p>Hindley-Milner type inference means you get the safety of static types without writing them. The compiler figures it out.</p></div>
+    <div class="card"><h4>No runtime</h4><p>Zein compiles to bare JavaScript. No VM, no garbage collector shim, no standard library to import. The output is readable JS.</p></div>
+    <div class="card"><h4>Transparent compilation</h4><p>The generated JS looks like what you'd write by hand. You can learn how a compiler works by reading its output.</p></div>
+    <div class="card"><h4>Go-like syntax</h4><p>Braces, types after names, no semicolons. Syntax is the least interesting part of a language — use one everyone already knows.</p></div>
+  </div>
+
+  <h3>Goals</h3>
+  <div class="grid wide">
+    <div class="card"><h4>Educational</h4><p>A language you can understand completely. The entire compiler is readable in a few hours. No black boxes.</p></div>
+    <div class="card"><h4>Practical</h4><p>Write real scripts, solve real problems, with real type safety. Not a toy — a tool you can use daily.</p></div>
+    <div class="card"><h4>Minimal</h4><p>Fit the entire language spec in your head. No features you don't use. No surprises.</p></div>
+    <div class="card"><h4>Approachable</h4><p>Like Go — you can be productive in an afternoon. Unlike Go — with full HM type inference and algebraic types.</p></div>
+  </div>
+
+  <h3>Benefits</h3>
+
+  <table>
+    <tr><th>Benefit</th><th>Why it matters</th></tr>
+    <tr><td>Understand the whole compiler</td><td>~3000 lines of Gleam. Lexer, parser, typechecker, codegen — all in one project, all readable.</td></tr>
+    <tr><td>Type safety without type annotations</td><td>HM inference catches null errors, type mismatches, and logic bugs — without you writing a single type annotation.</td></tr>
+    <tr><td>No runtime overhead</td><td>Compiles to bare JS. No VM, no garbage collector shim, no standard library dependency. Just <code>node main.zn</code>.</td></tr>
+    <tr><td>Gradual learning</td><td>Start without types. Add annotations as you go. The compiler always has your back.</td></tr>
+    <tr><td>Great for teaching</td><td>Students can trace a program through every phase: tokens → AST → typed AST → JS output.</td></tr>
+    <tr><td>Mutable when you need it</td><td>No ceremony to mutate a variable. No functional purity dogma. Just assignment.</td></tr>
+    <tr><td>Runs anywhere Node runs</td><td>Desktop, server, Raspberry Pi, CI pipeline — if Node runs, Zein runs.</td></tr>
+  </table>
+
+  <h3>Non-goals</h3>
+  <p>Zein is <strong>not</strong> trying to be:</p>
+  <ul>
+    <li>A systems language (no manual memory management, no inline assembly)</li>
+    <li>A replacement for Python or JavaScript in production (no massive package ecosystem)</li>
+    <li>A research language (no dependent types, no effect systems, no theorem proving)</li>
+    <li>A language you build a FAANG-scale backend with (not yet, anyway)</li>
+  </ul>
+  <p>Zein is a language for <strong>learning, teaching, and small-to-medium scripts</strong>. If that's what you need, it might be the nicest option available.</p>
+</section>
+
+<section id="install">
+  <h2>Install</h2>
+  <p>You need <strong>Node.js 18+</strong> and <strong>Gleam 1.17+</strong> (requires <strong>Erlang/OTP 27+</strong>).</p>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">git clone https://github.com/zein-lang/zein && cd zein && ./install.sh</span></div>
+
+  <table>
+    <tr><th>Platform</th><th>Command</th></tr>
+    <tr><td>Debian / Ubuntu</td><td><span style="font-family:var(--font);font-size:0.85rem">sudo apt install erlang nodejs gleam</span></td></tr>
+    <tr><td>Fedora</td><td><span style="font-family:var(--font);font-size:0.85rem">sudo dnf install erlang nodejs gleam</span></td></tr>
+    <tr><td>Arch Linux</td><td><span style="font-family:var(--font);font-size:0.85rem">sudo pacman -S erlang nodejs gleam</span></td></tr>
+    <tr><td>NixOS</td><td><span style="font-family:var(--font);font-size:0.85rem">nix profile install nixpkgs#erlang nixpkgs#nodejs nixpkgs#gleam</span></td></tr>
+    <tr><td>macOS</td><td><span style="font-family:var(--font);font-size:0.85rem">brew install erlang nodejs gleam</span></td></tr>
+    <tr><td>Windows</td><td><span style="font-family:var(--font);font-size:0.85rem">.\install.ps1</span></td></tr>
+  </table>
+  <p>Windows: open <strong>PowerShell</strong> as administrator, then:</p>
+  <div class="cmd"><span class="prompt">PS&gt;</span> <span class="text">Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</span></div>
+  <div class="cmd"><span class="prompt">PS&gt;</span> <span class="text">git clone https://github.com/zein-lang/zein && cd zein && .\install.ps1</span></div>
+  <p>Requires <strong>Node.js 18+</strong> and <strong>Gleam 1.17+</strong> (requires <strong>Erlang/OTP 27+</strong>). Gleam can be installed via <code>winget install gleam</code>.</p>
+
+  <p>After install:</p>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">zein hello.zn</span></div>
+</section>
+
+<section id="quickstart">
+  <h2>Quick Start</h2>
+  <p>Create <code>hello.zn</code>:</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="fn">main</span> {
+  <span class="builtin">print</span>(<span class="str">"hello from Zein!"</span>)
+}</pre></div>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">zein hello.zn</span><br>
+  <span class="text" style="color:var(--muted)">hello from Zein!</span></div>
+  <p>Compile to JS without running:</p>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">zein --compile hello.zn</span></div>
+</section>
+
+<section id="language">
+  <h2>Language Tour</h2>
+
+  <h3 id="imports">Imports &amp; Standard Library</h3>
+  <p>Import built-in modules with <code class="kw">import</code>. Currently available: <code>random</code>.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">import</span> random
+
+<span class="fn">main</span> {
+  <span class="builtin">print</span>(random_int(<span class="num">100</span>))
+  <span class="comment">// prints a random int between 0 and 100</span>
+}</pre></div>
+
+  <p>Standard library modules are built into the compiler. More modules coming soon.</p>
+
+  <h3 id="functions">Functions</h3>
+  <p>Declare with <code class="kw">fn</code> or the shorthand <code>name { body }</code>. The last expression in a function is the return value. Type annotations are optional — everything is inferred.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">fn</span> <span class="fn">add</span>(x: <span class="type">Int</span>, y: <span class="type">Int</span>) -> <span class="type">Int</span> {
+  x + y
+}
+
+<span class="comment">// shorthand for fn main() { ... }</span>
+<span class="fn">main</span> {
+  <span class="builtin">print</span>(add(<span class="num">2</span>, <span class="num">3</span>))
+}</pre></div>
+
+  <h3 id="variables">Variables</h3>
+  <p>Bind with <code class="kw">let</code>. Type annotation optional. Variables are <strong>mutable by default</strong>.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">let</span> x: <span class="type">Int</span> = <span class="num">5</span>
+<span class="kw">let</span> y = <span class="str">"inferred"</span>
+
+<span class="comment">// reassign freely</span>
+x = <span class="num">10</span>
+
+<span class="comment">// blocks are expressions</span>
+<span class="kw">let</span> result = {
+  <span class="kw">let</span> a = <span class="num">1</span>
+  <span class="kw">let</span> b = <span class="num">2</span>
+  a + b
+}</pre></div>
+
+  <h3 id="types">Types</h3>
+  <table>
+    <tr><th>Type</th><th>Description</th><th>Example</th></tr>
+    <tr><td><span class="type">Int</span></td><td>Integer</td><td><span class="num">42</span></td></tr>
+    <tr><td><span class="type">Float</span></td><td>Floating-point</td><td><span class="num">3.14</span></td></tr>
+    <tr><td><span class="type">String</span></td><td>UTF-8 string</td><td><span class="str">"hello"</span></td></tr>
+    <tr><td><span class="type">Bool</span></td><td>Boolean</td><td>True / False</td></tr>
+    <tr><td><span class="type">Nil</span></td><td>Unit / void</td><td>Nil</td></tr>
+    <tr><td><span class="type">List</span></td><td>Homogeneous list</td><td><span class="num">[1, 2, 3]</span></td></tr>
+  </table>
+
+  <p>Custom algebraic types:</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">type</span> <span class="fn">Option</span>(a) { <span class="fn">Some</span>(a) <span class="fn">None</span> }
+<span class="kw">type</span> <span class="fn">Color</span> { <span class="fn">Red</span> <span class="fn">Green</span> <span class="fn">Blue</span> }</pre></div>
+
+  <h3 id="conditionals">Conditionals &amp; else-if</h3>
+  <p><code class="kw">if</code> is an expression — it returns a value. Supports chained <code class="kw">else if</code>. The <code class="kw">else</code> branch is optional (returns Nil if omitted).</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">fn</span> <span class="fn">grade</span>(score: <span class="type">Int</span>) -> <span class="type">String</span> {
+  <span class="kw">if</span> score >= <span class="num">90</span> {
+    <span class="str">"A"</span>
+  } <span class="kw">else</span> <span class="kw">if</span> score >= <span class="num">80</span> {
+    <span class="str">"B"</span>
+  } <span class="kw">else</span> <span class="kw">if</span> score >= <span class="num">70</span> {
+    <span class="str">"C"</span>
+  } <span class="kw">else</span> {
+    <span class="str">"F"</span>
+  }
+}</pre></div>
+
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="comment">// if as an expression</span>
+<span class="kw">let</span> msg = <span class="kw">if</span> is_ready { <span class="str">"go"</span> } <span class="kw">else</span> { <span class="str">"wait"</span> }</pre></div>
+
+  <h3 id="loops">Loops</h3>
+  <p>Zein has <code class="kw">for</code>-in loops (over lists/ranges) and <code class="kw">while</code> loops.</p>
+
+  <h4>For-in loop</h4>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">for</span> i <span class="kw">in</span> <span class="num">1</span>..<span class="num">5</span> {
+  <span class="builtin">print</span>(i)
+}
+
+<span class="comment">// over a list</span>
+<span class="kw">let</span> names = [<span class="str">"Alice"</span>, <span class="str">"Bob"</span>, <span class="str">"Eve"</span>]
+<span class="kw">for</span> name <span class="kw">in</span> names {
+  <span class="builtin">print</span>(name)
+}</pre></div>
+
+  <h4>While loop</h4>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">let</span> x = <span class="num">0</span>
+<span class="kw">while</span> x < <span class="num">5</span> {
+  <span class="builtin">print</span>(x)
+  x = x + <span class="num">1</span>
+}</pre></div>
+
+  <div class="info"><strong>Note:</strong> <code>while</code> is a statement — it returns Nil. Use <code>for</code> when iterating over collections.</div>
+
+  <h3 id="records">Records</h3>
+  <p>Records are anonymous structs — create them with <code>TypeName(field: value)</code> syntax. They compile to plain JS objects.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">fn</span> <span class="fn">main</span> {
+  <span class="kw">let</span> person = <span class="fn">Person</span>(name: <span class="str">"Alice"</span>, age: <span class="num">30</span>)
+  <span class="builtin">print</span>(person.name)
+  <span class="builtin">print</span>(person.age)
+}</pre></div>
+
+  <div class="info tip"><strong>Tip:</strong> Records use named fields like <code>Person(name: "Alice", age: 30)</code>. Access fields with dot syntax <code>person.name</code>.</div>
+
+  <h3 id="arrays">Arrays (Lists)</h3>
+  <p>Lists are ordered, homogeneous collections. Use bracket syntax with optional trailing comma.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">let</span> empty = []
+<span class="kw">let</span> numbers = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>]
+<span class="kw">let</span> mixed = [<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>]
+
+<span class="builtin">print</span>(numbers[<span class="num">0</span>])  <span class="comment">// index access</span>
+
+<span class="kw">for</span> x <span class="kw">in</span> numbers {
+  <span class="builtin">print</span>(x)
+}</pre></div>
+
+  <div class="info"><strong>Note:</strong> Lists are type-homogeneous — <code>[1, "a"]</code> is a type error. Index access uses <code>list[index]</code> syntax.</div>
+
+  <h3 id="methods">Methods &amp; Field Access</h3>
+  <p>Call methods and access fields on any value with dot syntax. Compiles directly to JS property access and method calls.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">let</span> s = <span class="str">"hello"</span>
+
+<span class="comment">// field access</span>
+<span class="builtin">print</span>(s.length)
+
+<span class="comment">// method call</span>
+<span class="builtin">print</span>(s.toUpperCase())
+<span class="builtin">print</span>(s.toLowerCase())
+
+<span class="comment">// chaining</span>
+<span class="builtin">print</span>(<span class="str">"  hello  "</span>.trim().toUpperCase())</pre></div>
+
+  <div class="info tip"><strong>Tip:</strong> Since Zein compiles to JS, any JS String, Array, or object method is available via dot syntax.</div>
+
+  <h3 id="matching">Pattern Matching</h3>
+  <p><code class="kw">match</code> destructures values with patterns. The wildcard <code>_</code> matches anything. Guards are supported with <code>if</code>.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">fn</span> <span class="fn">describe</span>(n: <span class="type">Int</span>) -> <span class="type">String</span> {
+  <span class="kw">match</span> n {
+    <span class="num">1</span> -> <span class="str">"one"</span>
+    <span class="num">2</span> -> <span class="str">"two"</span>
+    _  -> <span class="str">"other"</span>
+  }
+}
+
+<span class="kw">match</span> opt {
+  <span class="fn">Some</span>(val) -> <span class="builtin">print</span>(val)
+  <span class="fn">None</span>     -> <span class="builtin">print</span>(<span class="str">"nothing"</span>)
+}</pre></div>
+
+  <h3 id="pipe">Pipe Operator</h3>
+  <p><code>|&gt;</code> pipes the left value as the first argument to the function on the right.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">fn</span> <span class="fn">double</span>(x: <span class="type">Int</span>) -> <span class="type">Int</span> { x * <span class="num">2</span> }
+
+<span class="kw">fn</span> <span class="fn">main</span> {
+  <span class="num">5</span> |> double |> <span class="builtin">print</span>
+  <span class="comment">// same as: print(double(5))</span>
+}</pre></div>
+
+  <h3 id="lambdas">Lambdas</h3>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="kw">let</span> increment = <span class="kw">fn</span>(x: <span class="type">Int</span>) { x + <span class="num">1</span> }
+<span class="builtin">print</span>(increment(<span class="num">5</span>))  <span class="comment">// 6</span>
+
+<span class="kw">fn</span> <span class="fn">apply</span>(f, x) { f(x) }
+<span class="builtin">print</span>(apply(<span class="kw">fn</span>(n) { n * <span class="num">2</span> }, <span class="num">3</span>))  <span class="comment">// 6</span></pre></div>
+
+  <h3 id="builtins">Built-ins</h3>
+  <p><code class="builtin">print</code> accepts any type, prints via <code>console.log</code>, returns <code class="type">Nil</code>.</p>
+  <div class="code-block"><span class="lang-label">Zein</span>
+<pre><span class="builtin">print</span>(<span class="str">"hello"</span>)
+<span class="builtin">print</span>(<span class="num">42</span>)
+<span class="builtin">print</span>(<span class="num">3.14</span>)
+<span class="builtin">print</span>(<span class="str">"hello "</span> <> name)</pre></div>
+</section>
+
+<section id="showcase">
+  <h2>Showcase</h2>
+  <p>Complete Zein programs demonstrating real usage patterns.</p>
+
+  <div class="showcase-grid">
+    <div class="code-block"><span class="lang-label">FizzBuzz</span>
+<pre><span class="kw">fn</span> <span class="fn">fizzbuzz</span>(n: <span class="type">Int</span>) -> <span class="type">String</span> {
+  <span class="kw">if</span> n % <span class="num">15</span> == <span class="num">0</span> {
+    <span class="str">"FizzBuzz"</span>
+  } <span class="kw">else</span> <span class="kw">if</span> n % <span class="num">3</span> == <span class="num">0</span> {
+    <span class="str">"Fizz"</span>
+  } <span class="kw">else</span> <span class="kw">if</span> n % <span class="num">5</span> == <span class="num">0</span> {
+    <span class="str">"Buzz"</span>
+  } <span class="kw">else</span> {
+    int.to_string(n)
+  }
+}
+
+<span class="fn">main</span> {
+  <span class="kw">for</span> i <span class="kw">in</span> <span class="num">1</span>..<span class="num">20</span> {
+    <span class="builtin">print</span>(fizzbuzz(i))
+  }
+}</pre></div>
+
+    <div class="code-block"><span class="lang-label">Collatz</span>
+<pre><span class="kw">fn</span> <span class="fn">collatz</span>(n: <span class="type">Int</span>) {
+  <span class="kw">let</span> x = n
+  <span class="kw">while</span> x > <span class="num">1</span> {
+    <span class="kw">if</span> x % <span class="num">2</span> == <span class="num">0</span> {
+      x = x / <span class="num">2</span>
+    } <span class="kw">else</span> {
+      x = <span class="num">3</span> * x + <span class="num">1</span>
+    }
+    <span class="builtin">print</span>(x)
+  }
+}
+
+<span class="fn">main</span> { collatz(<span class="num">27</span>) }</pre></div>
+  </div>
+
+  <div class="showcase-grid">
+    <div class="code-block"><span class="lang-label">Person Records</span>
+<pre><span class="kw">fn</span> <span class="fn">greet</span>(person) {
+  <span class="str">"Hi, I'm "</span> <> person.name
+  <> <span class="str">" and I'm "</span>
+  <> int.to_string(person.age)
+}
+
+<span class="fn">main</span> {
+  <span class="kw">let</span> alice = <span class="fn">Person</span>(
+    name: <span class="str">"Alice"</span>,
+    age: <span class="num">30</span>,
+  )
+  <span class="builtin">print</span>(greet(alice))
+}</pre></div>
+
+    <div class="code-block"><span class="lang-label">List Ops</span>
+<pre><span class="kw">fn</span> <span class="fn">sum</span>(xs: <span class="type">List</span>(<span class="type">Int</span>)) -> <span class="type">Int</span> {
+  <span class="kw">let</span> total = <span class="num">0</span>
+  <span class="kw">for</span> x <span class="kw">in</span> xs { total = total + x }
+  total
+}
+
+<span class="fn">main</span> {
+  <span class="kw">let</span> nums = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>]
+  <span class="builtin">print</span>(sum(nums))
+  <span class="builtin">print</span>(nums[<span class="num">0</span>])
+  <span class="builtin">print</span>(nums.length)
+}</pre></div>
+  </div>
+
+  <div class="showcase-grid">
+    <div class="code-block"><span class="lang-label">Grade Calculator</span>
+<pre><span class="kw">type</span> <span class="fn">Grade</span> { A B C D F }
+
+<span class="kw">fn</span> <span class="fn">to_grade</span>(score: <span class="type">Int</span>) -> <span class="type">Grade</span> {
+  <span class="kw">if</span> score >= <span class="num">90</span> { A }
+  <span class="kw">else</span> <span class="kw">if</span> score >= <span class="num">80</span> { B }
+  <span class="kw">else</span> <span class="kw">if</span> score >= <span class="num">70</span> { C }
+  <span class="kw">else</span> <span class="kw">if</span> score >= <span class="num">60</span> { D }
+  <span class="kw">else</span> { F }
+}
+
+<span class="fn">main</span> {
+  <span class="kw">let</span> scores = [<span class="num">95</span>, <span class="num">82</span>, <span class="num">73</span>, <span class="num">58</span>, <span class="num">100</span>]
+  <span class="kw">for</span> score <span class="kw">in</span> scores {
+    <span class="builtin">print</span>(to_grade(score))
+  }
+}</pre></div>
+
+    <div class="code-block"><span class="lang-label">String Methods</span>
+<pre><span class="fn">main</span> {
+  <span class="kw">let</span> text = <span class="str">"  Hello, Zein World!  "</span>
+
+  <span class="builtin">print</span>(text.trim())
+  <span class="builtin">print</span>(text.trim().toLowerCase())
+  <span class="builtin">print</span>(text.trim().split(<span class="str">" "</span>))
+  <span class="builtin">print</span>(text.trim().startsWith(<span class="str">"Hello"</span>))
+  <span class="builtin">print</span>(text.trim().length)
+}</pre></div>
+  </div>
+</section>
+
+<section id="syntax">
+  <h2>Syntax Reference</h2>
+  <table>
+    <tr><th>Construct</th><th>Syntax</th></tr>
+    <tr><td>Function</td><td><span class="kw">fn</span> <span class="fn">name</span>(param: <span class="type">Type</span>) -> <span class="type">Ret</span> { body }</td></tr>
+    <tr><td>Shorthand fn</td><td><span class="fn">name</span> { body }  <span class="comment">// = fn name() { body }</span></td></tr>
+    <tr><td>Variable (let)</td><td><span class="kw">let</span> name: <span class="type">Type</span> = value</td></tr>
+    <tr><td>Reassign</td><td>name = new_value</td></tr>
+    <tr><td>If / else-if</td><td><span class="kw">if</span> c { ... } <span class="kw">else if</span> c { ... } <span class="kw">else</span> { ... }</td></tr>
+    <tr><td>While</td><td><span class="kw">while</span> cond { body }</td></tr>
+    <tr><td>For-in</td><td><span class="kw">for</span> x <span class="kw">in</span> iterable { body }</td></tr>
+    <tr><td>Match</td><td><span class="kw">match</span> expr { pat -> body ... }</td></tr>
+    <tr><td>Return</td><td><span class="kw">return</span> expr</td></tr>
+    <tr><td>Pipe</td><td>expr |> function</td></tr>
+    <tr><td>Range</td><td>start..end</td></tr>
+    <tr><td>Lambda</td><td><span class="kw">fn</span>(param: <span class="type">Type</span>) { body }</td></tr>
+    <tr><td>Block</td><td>{ stmt; stmt; expr }</td></tr>
+    <tr><td>Record</td><td><span class="fn">TypeName</span>(field: value, ...)</td></tr>
+    <tr><td>Field access</td><td>obj.field</td></tr>
+    <tr><td>Method call</td><td>obj.method(args)</td></tr>
+    <tr><td>Index access</td><td>list[index]</td></tr>
+    <tr><td>List literal</td><td>[1, 2, 3]</td></tr>
+    <tr><td>Type def</td><td><span class="kw">type</span> <span class="fn">Name</span>(a) { Variant(a) ... }</td></tr>
+    <tr><td>Import</td><td><span class="kw">import</span> path [<span class="kw">as</span> alias]</td></tr>
+  </table>
+</section>
+
+<section id="operators">
+  <h2>Operators</h2>
+  <table>
+    <tr><th>Operator</th><th>Description</th></tr>
+    <tr><td>+ - * / %</td><td>Arithmetic (+, - also on F64)</td></tr>
+    <tr><td>== !=</td><td>Equality / inequality</td></tr>
+    <tr><td>&lt; &gt; &lt;= &gt;=</td><td>Comparison</td></tr>
+    <tr><td>&amp;&amp; ||</td><td>Logical and / or</td></tr>
+    <tr><td>!</td><td>Boolean negation</td></tr>
+    <tr><td>&lt;&gt;</td><td>String concatenation</td></tr>
+    <tr><td>|&gt;</td><td>Pipe (forward application)</td></tr>
+    <tr><td>-</td><td>Numeric negation</td></tr>
+    <tr><td>..</td><td>Range (inclusive)</td></tr>
+  </table>
+</section>
+
+<section id="vscode">
+  <h2>VS Code Integration</h2>
+  <p>Install the extension for syntax highlighting, live diagnostics, and autocomplete:</p>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">code --install-extension zein-lang-0.1.0.vsix</span></div>
+  <p>Features:</p>
+  <ul>
+    <li><strong>Syntax highlighting</strong> — TextMate grammar for <code>.zn</code> files</li>
+    <li><strong>Live diagnostics</strong> — tokenizer, parser, and type errors shown inline</li>
+    <li><strong>Smart autocomplete</strong> — snippets for <code>fn</code>, <code>if</code>, <code>match</code>, <code>for</code>, <code>while</code>, <code>print()</code>, and more</li>
+    <li><strong>Identifier completion</strong> — functions, types, and variables defined in the current file</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Zein — <a href="https://github.com/zein-lang/zein">GitHub</a></p>
+</footer>
+
+</main>
+
+<script>
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("keydown", e => {
+  if (e.key === "F12" || (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key.toUpperCase())) || (e.ctrlKey && e.key.toUpperCase() === "U")) {
+    e.preventDefault();
+  }
+});
+</script>
+
+</body>
+</html>

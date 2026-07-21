@@ -1,4 +1,5 @@
 import argv
+import ast
 import codegen
 import gleam/int
 import gleam/io
@@ -82,24 +83,54 @@ fn generate_js(source: String) -> Result(String, Nil) {
           Error(Nil)
         }
         Ok(#(mod, _remaining)) -> {
-          case typechecker.check_module(mod) {
-            Error(errors) -> {
-              io.println("type errors:")
-              errors |> list.each(fn(e) { io.println("  " <> e.message) })
+          case resolve_imports(mod) {
+            Error(msg) -> {
+              io.println(msg)
               Error(Nil)
             }
-            Ok(_state) -> {
-              case codegen.generate(mod) {
-                Ok(js) -> Ok(js)
-                Error(e) -> {
-                  io.println("codegen error: " <> e.message)
+            Ok(mod) -> {
+              case typechecker.check_module(mod) {
+                Error(errors) -> {
+                  io.println("type errors:")
+                  errors |> list.each(fn(e) { io.println("  " <> e.message) })
                   Error(Nil)
+                }
+                Ok(_state) -> {
+                  case codegen.generate(mod) {
+                    Ok(js) -> Ok(js)
+                    Error(e) -> {
+                      io.println("codegen error: " <> e.message)
+                      Error(Nil)
+                    }
+                  }
                 }
               }
             }
           }
         }
       }
+    }
+  }
+}
+
+fn resolve_imports(mod: ast.Module) -> Result(ast.Module, String) {
+  case mod.imports {
+    [] -> Ok(mod)
+    imports -> {
+      let known = ["random"]
+      let result =
+        list.fold(imports, Ok(mod), fn(acc, imp) {
+          case acc {
+            Error(_) -> acc
+            Ok(m) -> {
+              case list.contains(known, imp.path) {
+                True -> Ok(m)
+                False -> Error("unknown module: " <> imp.path)
+              }
+            }
+          }
+        })
+      result
     }
   }
 }

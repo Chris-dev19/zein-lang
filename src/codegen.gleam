@@ -180,6 +180,8 @@ fn generate_expression(expr: Expression) -> String {
       let args_str = args |> list.map(generate_expression) |> string.join(", ")
       case inner {
         EVariable("print") -> "console.log(" <> args_str <> ")"
+        EVariable("random_int") ->
+          "Math.floor(Math.random() * (" <> args_str <> "))"
         _ -> callee_str <> "(" <> args_str <> ")"
       }
     }

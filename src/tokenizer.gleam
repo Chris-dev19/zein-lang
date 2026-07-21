@@ -63,7 +63,6 @@ const upper_letters = [
 ]
 
 pub type Token {
-  Module
   Import
   As
   Fn
@@ -534,7 +533,6 @@ fn finish_ident(
   errors: List(TokenError),
 ) -> TokenizeResult {
   let keyword_token = case acc {
-    "module" -> Ok(Module)
     "import" -> Ok(Import)
     "as" -> Ok(As)
     "fn" -> Ok(Fn)
@@ -561,7 +559,6 @@ fn finish_ident(
 
 pub fn token_name(t: Token) -> String {
   case t {
-    Module -> "module"
     Import -> "import"
     As -> "as"
     Fn -> "fn"

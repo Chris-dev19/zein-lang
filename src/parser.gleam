@@ -6,7 +6,7 @@ import tokenizer.{
   type Token, AndAnd, Arrow, As, Bang, BangEqual, Colon, Comma, Concat, Dot,
   DotDot, EOF, Else, Equal, EqualEqual, FalseToken, FloatLiteral, Fn, For,
   Greater, GreaterEqual, Identifier,   If, Import, In, IntLiteral, LBrace,
-  LBracket, LParen, Less, LessEqual, Let, Match, Minus, Module, Newline, OrOr,
+  LBracket, LParen, Less, LessEqual, Let, Match, Minus, Newline, OrOr,
   Percent, Pipe, Plus, RBrace, RBracket, RParen, Return, Slash, Star,
   StringLiteral, TrueToken, Type, Underscore, While,
 }
@@ -40,7 +40,6 @@ fn expect(
 
 fn token_name(t: Token) -> String {
   case t {
-    Module -> "module"
     Import -> "import"
     As -> "as"
     Fn -> "fn"
@@ -104,10 +103,61 @@ pub fn parse_module(
   tokens: List(Token),
 ) -> Result(#(ast.Module, List(Token)), ParseError) {
   let tokens = skip_newlines(tokens)
+  use defs_imports <- result.try(parse_top_level(tokens, [], []))
+  let #(imports, defs, remaining) = defs_imports
+  Ok(#(ast.Module("main", imports, defs), remaining))
+}
+
+fn parse_top_level(
+  tokens: List(Token),
+  imports: List(ast.Import),
+  defs: List(ast.Definition),
+) -> Result(#(List(ast.Import), List(ast.Definition), List(Token)), ParseError) {
+  let tokens = skip_newlines(tokens)
   case tokens {
-    [Module, ..rest] -> {
-      let tokens = skip_newlines(rest)
-      let assert Ok(#(Identifier(name), tokens)) =
+    [] -> Ok(#(list.reverse(imports), list.reverse(defs), tokens))
+    [Import, ..rest] -> {
+      let rest = skip_newlines(rest)
+      let assert Ok(#(Identifier(path), rest)) =
+        consume(rest, "<identifier>", fn(t) {
+          case t {
+            Identifier(_) -> True
+            _ -> False
+          }
+        })
+      let rest = skip_newlines(rest)
+      let #(alias, rest) = case rest {
+        [As, ..rest2] -> {
+          let rest2 = skip_newlines(rest2)
+          let assert Ok(#(Identifier(a), rest2)) =
+            consume(rest2, "<identifier>", fn(t) {
+              case t {
+                Identifier(_) -> True
+                _ -> False
+              }
+            })
+          #(Some(a), rest2)
+        }
+        _ -> #(None, rest)
+      }
+      let rest = skip_newlines(rest)
+      parse_top_level(rest, [ast.Import(path, alias), ..imports], defs)
+    }
+    _ -> parse_definitions(tokens, imports, defs)
+  }
+}
+
+fn parse_definitions(
+  tokens: List(Token),
+  imports: List(ast.Import),
+  acc: List(ast.Definition),
+) -> Result(#(List(ast.Import), List(ast.Definition), List(Token)), ParseError) {
+  let tokens = skip_newlines(tokens)
+  case tokens {
+    [RBrace, ..] -> Ok(#(list.reverse(imports), list.reverse(acc), tokens))
+    [Import, ..] -> {
+      let tokens = skip_newlines(tokens)
+      let assert Ok(#(Identifier(path), tokens)) =
         consume(tokens, "<identifier>", fn(t) {
           case t {
             Identifier(_) -> True
@@ -115,46 +165,40 @@ pub fn parse_module(
           }
         })
       let tokens = skip_newlines(tokens)
-      use #(_, tokens) <- result.try(expect(tokens, LBrace))
+      let #(alias, tokens) = case tokens {
+        [As, ..rest2] -> {
+          let rest2 = skip_newlines(rest2)
+          let assert Ok(#(Identifier(a), rest2)) =
+            consume(rest2, "<identifier>", fn(t) {
+              case t {
+                Identifier(_) -> True
+                _ -> False
+              }
+            })
+          #(Some(a), rest2)
+        }
+        _ -> #(None, tokens)
+      }
       let tokens = skip_newlines(tokens)
-      use defs_remaining <- result.try(parse_definitions(tokens, []))
-      let #(defs, remaining) = defs_remaining
-      let remaining = skip_newlines(remaining)
-      use #(_, remaining) <- result.try(expect(remaining, RBrace))
-      Ok(#(ast.Module(name, [], defs), remaining))
+      parse_definitions(tokens, [ast.Import(path, alias), ..imports], acc)
     }
-    _ -> {
-      use defs_remaining <- result.try(parse_definitions(tokens, []))
-      let #(defs, remaining) = defs_remaining
-      Ok(#(ast.Module("main", [], defs), remaining))
-    }
-  }
-}
-
-fn parse_definitions(
-  tokens: List(Token),
-  acc: List(ast.Definition),
-) -> Result(#(List(ast.Definition), List(Token)), ParseError) {
-  let tokens = skip_newlines(tokens)
-  case tokens {
-    [RBrace, ..] -> Ok(#(list.reverse(acc), tokens))
     [Fn, ..] -> {
       use pair <- result.try(parse_function_def(tokens))
       let #(def, tokens) = pair
       let tokens = skip_newlines(tokens)
-      parse_definitions(tokens, [def, ..acc])
+      parse_definitions(tokens, imports, [def, ..acc])
     }
     [Let, ..] -> {
       use pair <- result.try(parse_let_def(tokens))
       let #(def, tokens) = pair
       let tokens = skip_newlines(tokens)
-      parse_definitions(tokens, [def, ..acc])
+      parse_definitions(tokens, imports, [def, ..acc])
     }
     [Type, ..] -> {
       use pair <- result.try(parse_type_def(tokens))
       let #(def, tokens) = pair
       let tokens = skip_newlines(tokens)
-      parse_definitions(tokens, [def, ..acc])
+      parse_definitions(tokens, imports, [def, ..acc])
     }
     [Identifier(name), ..rest] -> {
       let rest_skip = skip_newlines(rest)
@@ -162,20 +206,20 @@ fn parse_definitions(
         [LBrace, ..] -> {
           let assert Ok(#(body, rest)) = parse_block(rest)
           let rest = skip_newlines(rest)
-          parse_definitions(rest, [ast.DefFunction(name, [], None, body), ..acc])
+          parse_definitions(rest, imports, [ast.DefFunction(name, [], None, body), ..acc])
         }
         _ -> {
           case rest {
-            [] -> Ok(#(list.reverse(acc), rest))
-            [_, ..] -> parse_definitions(rest, acc)
+            [] -> Ok(#(list.reverse(imports), list.reverse(acc), rest))
+            [_, ..] -> parse_definitions(rest, imports, acc)
           }
         }
       }
     }
     _ -> {
       case tokens {
-        [] -> Ok(#(list.reverse(acc), tokens))
-        [_, ..rest] -> parse_definitions(rest, acc)
+        [] -> Ok(#(list.reverse(imports), list.reverse(acc), tokens))
+        [_, ..rest] -> parse_definitions(rest, imports, acc)
       }
     }
   }
@@ -183,6 +227,7 @@ fn parse_definitions(
 
 // === Function Definition ===
 // fn Name(Params) -> Type { Expression }
+// fn Name { Expression }  (shorthand, no params)
 fn parse_function_def(
   tokens: List(Token),
 ) -> Result(#(ast.Definition, List(Token)), ParseError) {
@@ -196,20 +241,27 @@ fn parse_function_def(
       }
     })
   let tokens = skip_newlines(tokens)
-  let assert Ok(#(_, tokens)) = expect(tokens, LParen)
-  let tokens = skip_newlines(tokens)
-  let #(params, tokens) = parse_param_list(tokens)
-  let tokens = skip_newlines(tokens)
-  let assert Ok(#(_, tokens)) = expect(tokens, RParen)
-  let tokens = skip_newlines(tokens)
 
-  let #(ret_type, tokens) = case tokens {
-    [Arrow, ..rest] -> {
-      let rest = skip_newlines(rest)
-      let assert Ok(#(t, rest)) = parse_type(rest)
-      #(Some(t), rest)
+  let #(params, ret_type, tokens) = case tokens {
+    [LBrace, ..] -> #([], None, tokens)
+    _ -> {
+      let assert Ok(#(_, tokens)) = expect(tokens, LParen)
+      let tokens = skip_newlines(tokens)
+      let #(params, tokens) = parse_param_list(tokens)
+      let tokens = skip_newlines(tokens)
+      let assert Ok(#(_, tokens)) = expect(tokens, RParen)
+      let tokens = skip_newlines(tokens)
+
+      let #(ret_type, tokens) = case tokens {
+        [Arrow, ..rest] -> {
+          let rest = skip_newlines(rest)
+          let assert Ok(#(t, rest)) = parse_type(rest)
+          #(Some(t), rest)
+        }
+        _ -> #(None, tokens)
+      }
+      #(params, ret_type, tokens)
     }
-    _ -> #(None, tokens)
   }
 
   let tokens = skip_newlines(tokens)

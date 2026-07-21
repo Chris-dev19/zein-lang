@@ -389,6 +389,7 @@ fn infer_variable(
       let #(t, state) = fresh_tvar(state)
       #(TFun([t], ast.Box(TApp("Nil", []))), state)
     }
+    "random_int" -> #(TFun([TInt], ast.Box(TInt)), state)
     _ -> {
       case lookup_env(state.env, name) {
         Ok(t) -> #(apply_subs(t, state.subs), state)

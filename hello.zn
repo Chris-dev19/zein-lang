@@ -1,7 +1,0 @@
-fn main() {
-   let name = "Jose"
-   print("Hello " <> name)
-   
-   
-  }
-

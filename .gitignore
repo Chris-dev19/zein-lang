@@ -1,0 +1,11 @@
+*.beam
+*.ez
+/build
+erl_crash.dump
+node_modules/
+zeinc-build/
+zeinc.escript
+zein-vscode/node_modules/
+zein-vscode/out/
+zein-vscode/*.vsix
+zein-vscode/server/node_modules/

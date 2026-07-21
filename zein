@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+
+case "$1" in
+  --compile|--diagnostics|--help|-h)
+    exec "$DIR/zeinc" "$@"
+    ;;
+esac
+
+JS=$("$DIR/zeinc" --compile "$@" 2>/dev/null)
+if [ $? -ne 0 ]; then
+  "$DIR/zeinc" "$@" 2>&1
+  exit $?
+fi
+
+if command -v node &>/dev/null; then
+  node -e "$JS"
+else
+  echo "error: node not found — install Node.js or use --compile to see JS output" >&2
+  exit 1
+fi

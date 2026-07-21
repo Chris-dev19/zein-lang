@@ -1,0 +1,70 @@
+{
+  "name": "zein-lang",
+  "displayName": "Zein Language Support",
+  "description": "Language support for the Zein programming language",
+  "version": "0.1.0",
+  "publisher": "zein",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Language Packs"
+  ],
+  "activationEvents": [
+    "onLanguage:zein"
+  ],
+  "icon": "images/icon.png",
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "zein",
+        "aliases": [
+          "Zein",
+          "zein"
+        ],
+        "extensions": [
+          ".zn"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "zein",
+        "scopeName": "source.zn",
+        "path": "./syntaxes/zein.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "zein.compile",
+        "title": "Zein: Compile current file"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zein-lang/zein"
+  },
+  "scripts": {
+    "compile": "tsc -p ./tsconfig.json",
+    "package": "vsce package",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^7.0.2",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.0"
+  }
+}

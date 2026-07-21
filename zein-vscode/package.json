@@ -29,6 +29,7 @@
         "extensions": [
           ".zn"
         ],
+        "icon": "images/icon.svg",
         "configuration": "./language-configuration.json"
       }
     ],

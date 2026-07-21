@@ -75,6 +75,7 @@ pub type Token {
   For
   In
   Return
+  While
   TrueToken
   FalseToken
   Underscore
@@ -545,6 +546,7 @@ fn finish_ident(
     "for" -> Ok(For)
     "in" -> Ok(In)
     "return" -> Ok(Return)
+    "while" -> Ok(While)
     "true" -> Ok(TrueToken)
     "false" -> Ok(FalseToken)
     "_" -> Ok(Underscore)
@@ -571,6 +573,7 @@ pub fn token_name(t: Token) -> String {
     For -> "for"
     In -> "in"
     Return -> "return"
+    While -> "while"
     TrueToken -> "true"
     FalseToken -> "false"
     Underscore -> "_"

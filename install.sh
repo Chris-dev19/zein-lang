@@ -113,14 +113,33 @@ build_compiler() {
 }
 
 install_zein_binaries() {
-  local dest="${PREFIX:-/usr/local/bin}"
+  local dest="${PREFIX:-}"
+  if [ -z "$dest" ]; then
+    if [ -w "/usr/local/bin" ]; then
+      dest="/usr/local/bin"
+    elif command -v sudo &>/dev/null; then
+      dest="/usr/local/bin"
+    else
+      dest="$HOME/.local/bin"
+    fi
+  fi
   local build_dest="${dest}/zeinc-build"
 
+  local maybe_sudo=""
+  if [ ! -w "$dest" ]; then
+    if command -v sudo &>/dev/null; then
+      maybe_sudo="sudo"
+    else
+      dest="$HOME/.local/bin"
+      build_dest="$dest/zeinc-build"
+    fi
+  fi
+
   info "installing to $dest ..."
-  mkdir -p "$dest"
+  $maybe_sudo mkdir -p "$dest"
 
   # Node.js launcher
-  cat > "$dest/zeinc" << 'SCRIPT'
+  $maybe_sudo tee "$dest/zeinc" > /dev/null << 'SCRIPT'
 #!/usr/bin/env node
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -135,10 +154,9 @@ try {
   } catch { process.exit(1); }
 }
 SCRIPT
-  chmod 755 "$dest/zeinc"
 
   # Shell wrapper
-  cat > "$dest/zein" << 'SCRIPT'
+  $maybe_sudo tee "$dest/zein" > /dev/null << 'SCRIPT'
 #!/usr/bin/env bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
 case "$1" in
@@ -147,14 +165,20 @@ esac
 JS=$("$DIR/zeinc" --compile "$@" 2>/dev/null) || { "$DIR/zeinc" "$@" 2>&1; exit $?; }
 exec node -e "$JS"
 SCRIPT
-  chmod 755 "$dest/zein"
+  $maybe_sudo chmod 755 "$dest/zein" "$dest/zeinc"
 
   # JS build directory
-  rm -rf "$build_dest"
-  cp -r "$DIR/zeinc-build" "$build_dest"
+  $maybe_sudo rm -rf "$build_dest"
+  $maybe_sudo cp -r "$DIR/zeinc-build" "$build_dest"
 
   # Escript fallback
-  cp "$DIR/zeinc.escript" "$dest/zeinc.escript"
+  $maybe_sudo cp "$DIR/zeinc.escript" "$dest/zeinc.escript"
+
+  # Ensure PATH includes dest
+  if ! echo "$PATH" | tr ':' '\n' | grep -qx "$dest"; then
+    warn "$dest is not in your PATH"
+    warn "add this to your shell config: export PATH=\"\$PATH:$dest\""
+  fi
 
   info "installed: zeinc, zein, zeinc.escript, zeinc-build/"
 }

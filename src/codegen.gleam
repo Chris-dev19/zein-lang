@@ -2,10 +2,12 @@ import ast.{
   type BlockItem, type Definition, type Expression, type FunctionParam,
   type InfixOp, type Literal, type MatchClause, type Pattern,
   type TypeAnnotation, BlockDef, BlockExpr, DefAlias, DefFunction, DefLet,
-  DefRecord, DefType, EBlock, ECall, EFor, EIf, EInfix, ELambda, ELet, ELiteral,
-  EMatch, EPipe, ERange, EReassign, EReturn, EUnary, EVariable, LBool, LFloat,
-  LInt, LString, Negate, Not, PLiteral, PVariable, PVariant, PWildcard,
-  TFunction, TNamed, TVariable,
+  DefRecord, DefType, EBlock, ECall, EFieldAccess, EFor, EIf, EIndex, EInfix,
+  ELambda, ELet, EList, ELiteral, EMatch, EMethodCall, EPipe, ERange,
+  EReassign, ERecord, EReturn, EUnary, EVariable, EWhile, LBool, LFloat, LInt,
+  LString,
+  Negate, Not, PLiteral, PVariable, PVariant, PWildcard, TFunction, TNamed,
+  TVariable,
 }
 import gleam/int
 import gleam/list
@@ -66,6 +68,14 @@ fn generate_definition(def: Definition) -> String {
   }
 }
 
+fn is_loop_expr(item: BlockItem) -> Bool {
+  case item {
+    BlockExpr(EFor(_, _, _)) -> True
+    BlockExpr(EWhile(_, _)) -> True
+    _ -> False
+  }
+}
+
 fn generate_function_body(body: Expression) -> String {
   case body {
     EBlock(items) -> {
@@ -74,7 +84,7 @@ fn generate_function_body(body: Expression) -> String {
         items
         |> list.index_map(fn(item, idx) {
           let s = generate_block_item(item)
-          case idx == last_index {
+          case idx == last_index && !is_loop_expr(item) {
             True -> "return " <> s
             False -> s
           }
@@ -83,6 +93,8 @@ fn generate_function_body(body: Expression) -> String {
         |> indent
       strings
     }
+    EFor(_, _, _) -> generate_expression(body) |> indent
+    EWhile(_, _) -> generate_expression(body) |> indent
     _ -> "return " <> generate_expression(body) |> indent
   }
 }
@@ -203,14 +215,20 @@ fn generate_expression(expr: Expression) -> String {
         items |> list.map(generate_block_item) |> string.join(";\n")
       "{\n" <> indent(items_str) <> "\n}"
     }
-    EIf(cond, conseq, alt) -> {
-      "(() => {\nif ("
-      <> unwrap_expr(cond)
-      <> ") {\nreturn "
-      <> unwrap_body(conseq)
-      <> "\n} else {\nreturn "
-      <> unwrap_body(alt)
-      <> "\n}\n})()"
+    EIf(cond, conseq, else_ifs, alt) -> {
+      let conseq_str = "if (" <> unwrap_expr(cond) <> ") {\n" <> indent(unwrap_body(conseq)) <> "\n}"
+      let else_ifs_str =
+        else_ifs
+        |> list.map(fn(pair) {
+          let #(elif_cond, elif_body) = pair
+          " else if (" <> unwrap_expr(elif_cond) <> ") {\n" <> indent(unwrap_body(elif_body)) <> "\n}"
+        })
+        |> string.join("")
+      let else_tail = case alt {
+        Some(alt_body) -> generate_else_tail(alt_body)
+        None -> ""
+      }
+      "(() => {\n" <> indent(conseq_str <> else_ifs_str <> else_tail) <> "\n})()"
     }
     EReturn(value) -> "return " <> unwrap_expr(value)
     EPipe(left, right) -> {
@@ -245,6 +263,33 @@ fn generate_expression(expr: Expression) -> String {
       <> unwrap_expr(iterable)
       <> ") "
       <> unwrap_expr(body)
+    }
+    EWhile(cond, body) -> {
+      "while (" <> unwrap_expr(cond) <> ") " <> unwrap_expr(body)
+    }
+    ERecord(_name, fields) -> {
+      let fields_str =
+        fields
+        |> list.map(fn(pair) {
+          let #(fname, fexpr) = pair
+          fname <> ": " <> generate_expression(fexpr)
+        })
+        |> string.join(", ")
+      "({ " <> fields_str <> " })"
+    }
+    EFieldAccess(expr, field) -> {
+      unwrap_expr(expr) <> "." <> field
+    }
+    EIndex(expr, index) -> {
+      unwrap_expr(expr) <> "[" <> unwrap_expr(index) <> "]"
+    }
+    EMethodCall(expr, method, args) -> {
+      let args_str = args |> list.map(generate_expression) |> string.join(", ")
+      unwrap_expr(expr) <> "." <> method <> "(" <> args_str <> ")"
+    }
+    EList(items) -> {
+      let items_str = items |> list.map(generate_expression) |> string.join(", ")
+      "[" <> items_str <> "]"
     }
   }
 }
@@ -351,6 +396,39 @@ fn pattern_literal_op(lit: Literal) -> String {
     LBool(True) -> "=== true"
     LBool(False) -> "=== false"
     LString(s) -> "=== \"" <> escape_string(s) <> "\""
+  }
+}
+
+fn generate_else_tail(alt_body: ast.Box(Expression)) -> String {
+  let ast.Box(body) = alt_body
+  case body {
+    EIf(cond, conseq, else_ifs, alt) -> {
+      " else if ("
+      <> unwrap_expr(cond)
+      <> ") {\n"
+      <> indent(unwrap_body(conseq))
+      <> "\n}"
+      <> case else_ifs {
+        [] -> case alt {
+          Some(a) -> generate_else_tail(a)
+          None -> ""
+        }
+        _ -> {
+          let rest =
+            else_ifs
+            |> list.map(fn(pair) {
+              let #(elif_cond, elif_body) = pair
+              " else if (" <> unwrap_expr(elif_cond) <> ") {\n" <> indent(unwrap_body(elif_body)) <> "\n}"
+            })
+            |> string.join("")
+          rest <> case alt {
+            Some(a) -> generate_else_tail(a)
+            None -> ""
+          }
+        }
+      }
+    }
+    _ -> " else {\n" <> indent(unwrap_body(alt_body)) <> "\n}"
   }
 }
 

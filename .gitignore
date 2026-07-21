@@ -10,3 +10,4 @@ zein-vscode/out/
 zein-vscode/*.vsix
 zein-vscode/server/node_modules/
 website/
+/zein

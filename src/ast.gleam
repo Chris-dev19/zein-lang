@@ -105,36 +105,48 @@ pub type BlockItem {
 }
 
 pub type Expression {
-  // Literal value (42, true, "hello")
+  /// Literal value (42, true, "hello")
   ELiteral(Literal)
-  // Variable/function reference
+  /// Variable/function reference
   EVariable(String)
-  // Function call: callee(args)
+  /// Function call: callee(args)
   ECall(Box(Expression), List(Expression))
-  // Infix operation: left op right
+  /// Method call: expr.method(args)
+  EMethodCall(Box(Expression), String, List(Expression))
+  /// Field access: expr.field
+  EFieldAccess(Box(Expression), String)
+  /// Index access: expr[index]
+  EIndex(Box(Expression), Box(Expression))
+  /// Infix operation: left op right
   EInfix(Box(Expression), InfixOp, Box(Expression))
-  // Unary operation: op operand
+  /// Unary operation: op operand
   EUnary(UnaryOp, Box(Expression))
-  // Variable reassignment
+  /// Variable reassignment
   EReassign(String, Box(Expression))
-  // Let binding with body scope: let x = value; body
+  /// Let binding with body scope: let x = value; body
   ELet(String, Option(TypeAnnotation), Box(Expression), Box(Expression))
-  // Block: sequence of statements, last is result
+  /// Block: sequence of statements, last is result
   EBlock(List(BlockItem))
-  // If expression
-  EIf(Box(Expression), Box(Expression), Box(Expression))
-  // Early return
+  /// If expression with optional else-if chain
+  EIf(Box(Expression), Box(Expression), List(#(Box(Expression), Box(Expression))), Option(Box(Expression)))
+  /// Early return
   EReturn(Box(Expression))
-  // Pipe: left |> right  (equivalent to right(left))
+  /// Pipe: left |> right  (equivalent to right(left))
   EPipe(Box(Expression), Box(Expression))
-  // Range: start..end
+  /// Range: start..end
   ERange(Box(Expression), Box(Expression))
-  // Match expression
+  /// Match expression
   EMatch(Box(Expression), List(MatchClause))
-  // Anonymous function
+  /// Anonymous function
   ELambda(List(FunctionParam), Option(TypeAnnotation), Box(Expression))
-  // For-in loop: for x in iterable { body }
+  /// For-in loop: for x in iterable { body }
   EFor(String, Box(Expression), Box(Expression))
+  /// While loop: while cond { body }
+  EWhile(Box(Expression), Box(Expression))
+  /// Record construction: TypeName(field: value, ...)
+  ERecord(String, List(#(String, Expression)))
+  /// Array/list literal: [1, 2, 3]
+  EList(List(Expression))
 }
 
 pub type Import {

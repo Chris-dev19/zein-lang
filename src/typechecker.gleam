@@ -2,10 +2,12 @@ import ast.{
   type BlockItem, type Definition, type Expression, type FunctionParam,
   type InfixOp, type Literal, type MatchClause, type Pattern,
   type TypeAnnotation, BlockDef, BlockExpr, DefAlias, DefFunction, DefLet,
-  DefRecord, DefType, EBlock, ECall, EFor, EIf, EInfix, ELambda, ELet, ELiteral,
-  EMatch, EPipe, ERange, EReassign, EReturn, EUnary, EVariable, LBool, LFloat,
-  LInt, LString, Negate, Not, PLiteral, PVariable, PVariant, PWildcard,
-  TFunction, TNamed, TVariable,
+  DefRecord, DefType, EBlock, ECall, EFieldAccess, EFor, EIf, EIndex, EInfix,
+  ELambda, ELet, EList, ELiteral, EMatch, EMethodCall, EPipe, ERange,
+  EReassign, ERecord, EReturn, EUnary, EVariable, EWhile, LBool, LFloat, LInt,
+  LString,
+  Negate, Not, PLiteral, PVariable, PVariant, PWildcard, TFunction, TNamed,
+  TVariable,
 }
 import gleam/int
 import gleam/list
@@ -348,7 +350,7 @@ fn infer_expression(
     EReassign(name, value) -> infer_reassign(name, value, state)
     ELet(name, t, value, body) -> infer_let(name, t, value, body, state)
     EBlock(items) -> infer_block(items, state)
-    EIf(cond, conseq, alt) -> infer_if(cond, conseq, alt, state)
+    EIf(cond, conseq, else_ifs, alt) -> infer_if(cond, conseq, else_ifs, alt, state)
     EReturn(value) -> infer_return(value, state)
     EPipe(left, right) -> infer_pipe(left, right, state)
     ERange(start, end_) -> infer_range(start, end_, state)
@@ -356,6 +358,13 @@ fn infer_expression(
     ELambda(params, ret_type, body) ->
       infer_lambda(params, ret_type, body, state)
     EFor(name, iterable, body) -> infer_for(name, iterable, body, state)
+    EWhile(cond, body) -> infer_while(cond, body, state)
+    EIndex(expr, index) -> infer_index(expr, index, state)
+    ERecord(name, fields) -> infer_record(name, fields, state)
+    EFieldAccess(expr, field) -> infer_field_access(expr, field, state)
+    EMethodCall(expr, method, args) ->
+      infer_method_call(expr, method, args, state)
+    EList(items) -> infer_list(items, state)
   }
 }
 
@@ -524,14 +533,33 @@ fn infer_block_item(
 fn infer_if(
   cond: ast.Box(Expression),
   conseq: ast.Box(Expression),
-  alt: ast.Box(Expression),
+  else_ifs: List(#(ast.Box(Expression), ast.Box(Expression))),
+  alt: Option(ast.Box(Expression)),
   state: TypeCheckerState,
 ) -> #(Type, TypeCheckerState) {
   let #(cond_t, state) = infer_expression(unbox(cond), state)
   let state = unify(cond_t, TBool, state)
   let #(conseq_t, state) = infer_expression(unbox(conseq), state)
-  let #(alt_t, state) = infer_expression(unbox(alt), state)
-  let state = unify(conseq_t, alt_t, state)
+
+  let #(_, state) =
+    list.fold(else_ifs, #(conseq_t, state), fn(acc, pair) {
+      let #(elif_cond, elif_body) = pair
+      let #(_, state) = acc
+      let #(ec_t, state) = infer_expression(unbox(elif_cond), state)
+      let state = unify(ec_t, TBool, state)
+      let #(eb_t, state) = infer_expression(unbox(elif_body), state)
+      let state = unify(conseq_t, eb_t, state)
+      #(conseq_t, state)
+    })
+
+  let state = case alt {
+    Some(alt_body) -> {
+      let #(alt_t, state) = infer_expression(unbox(alt_body), state)
+      unify(conseq_t, alt_t, state)
+    }
+    None -> state
+  }
+
   #(apply_subs(conseq_t, state.subs), state)
 }
 
@@ -663,6 +691,89 @@ fn infer_for(
   let #(_body_t, state) = infer_expression(unbox(body), state)
 
   #(TApp("Nil", []), state)
+}
+
+fn infer_while(
+  cond: ast.Box(Expression),
+  body: ast.Box(Expression),
+  state: TypeCheckerState,
+) -> #(Type, TypeCheckerState) {
+  let #(cond_t, state) = infer_expression(unbox(cond), state)
+  let state = unify(cond_t, TBool, state)
+  let #(_body_t, state) = infer_expression(unbox(body), state)
+  #(TApp("Nil", []), state)
+}
+
+fn infer_record(
+  name: String,
+  fields: List(#(String, Expression)),
+  state: TypeCheckerState,
+) -> #(Type, TypeCheckerState) {
+  let state =
+    list.fold(fields, state, fn(state, pair) {
+      let #(_fname, fexpr) = pair
+      let #(_ft, state) = infer_expression(fexpr, state)
+      state
+    })
+  #(TApp(name, []), state)
+}
+
+fn infer_field_access(
+  expr: ast.Box(Expression),
+  field: String,
+  state: TypeCheckerState,
+) -> #(Type, TypeCheckerState) {
+  let #(_expr_t, state) = infer_expression(unbox(expr), state)
+  let #(ret_t, state) = fresh_tvar(state)
+  #(ret_t, state)
+}
+
+fn infer_method_call(
+  expr: ast.Box(Expression),
+  method: String,
+  args: List(Expression),
+  state: TypeCheckerState,
+) -> #(Type, TypeCheckerState) {
+  let #(_obj_t, state) = infer_expression(unbox(expr), state)
+  let #(arg_types, state) =
+    list.fold(args, #([], state), fn(acc, arg) {
+      let #(types, state) = acc
+      let #(at, state) = infer_expression(arg, state)
+      #([at, ..types], state)
+    })
+  let _ = arg_types
+
+  let #(ret_t, state) = fresh_tvar(state)
+  #(ret_t, state)
+}
+
+fn infer_index(
+  expr: ast.Box(Expression),
+  index: ast.Box(Expression),
+  state: TypeCheckerState,
+) -> #(Type, TypeCheckerState) {
+  let #(expr_t, state) = infer_expression(unbox(expr), state)
+  let #(index_t, state) = infer_expression(unbox(index), state)
+  let state = unify(index_t, TInt, state)
+  let #(elem_t, state) = fresh_tvar(state)
+  let state = unify(expr_t, TApp("List", [elem_t]), state)
+  #(apply_subs(elem_t, state.subs), state)
+}
+
+fn infer_list(
+  items: List(Expression),
+  state: TypeCheckerState,
+) -> #(Type, TypeCheckerState) {
+  let #(elem_t, state) = fresh_tvar(state)
+  let #(item_types, state) =
+    list.fold(items, #([], state), fn(acc, item) {
+      let #(types, state) = acc
+      let #(it, state) = infer_expression(item, state)
+      let state = unify(elem_t, it, state)
+      #([it, ..types], state)
+    })
+  let _ = item_types
+  #(TApp("List", [apply_subs(elem_t, state.subs)]), state)
 }
 
 // ── Helpers ─────────────────────────────────────────────

@@ -5,10 +5,10 @@ import gleam/result
 import tokenizer.{
   type Token, AndAnd, Arrow, As, Bang, BangEqual, Colon, Comma, Concat, Dot,
   DotDot, EOF, Else, Equal, EqualEqual, FalseToken, FloatLiteral, Fn, For,
-  Greater, GreaterEqual, Identifier, If, Import, In, IntLiteral, LBrace,
+  Greater, GreaterEqual, Identifier,   If, Import, In, IntLiteral, LBrace,
   LBracket, LParen, Less, LessEqual, Let, Match, Minus, Module, Newline, OrOr,
   Percent, Pipe, Plus, RBrace, RBracket, RParen, Return, Slash, Star,
-  StringLiteral, TrueToken, Type, Underscore,
+  StringLiteral, TrueToken, Type, Underscore, While,
 }
 
 pub type ParseError {
@@ -52,6 +52,7 @@ fn token_name(t: Token) -> String {
     For -> "for"
     In -> "in"
     Return -> "return"
+    While -> "while"
     TrueToken -> "true"
     FalseToken -> "false"
     Underscore -> "_"
@@ -154,6 +155,22 @@ fn parse_definitions(
       let #(def, tokens) = pair
       let tokens = skip_newlines(tokens)
       parse_definitions(tokens, [def, ..acc])
+    }
+    [Identifier(name), ..rest] -> {
+      let rest_skip = skip_newlines(rest)
+      case rest_skip {
+        [LBrace, ..] -> {
+          let assert Ok(#(body, rest)) = parse_block(rest)
+          let rest = skip_newlines(rest)
+          parse_definitions(rest, [ast.DefFunction(name, [], None, body), ..acc])
+        }
+        _ -> {
+          case rest {
+            [] -> Ok(#(list.reverse(acc), rest))
+            [_, ..] -> parse_definitions(rest, acc)
+          }
+        }
+      }
     }
     _ -> {
       case tokens {
@@ -449,7 +466,27 @@ fn parse_expression(
   tokens: List(Token),
 ) -> Result(#(ast.Expression, List(Token)), ParseError) {
   let assert Ok(#(expr, tokens)) = parse_binary(tokens, 1)
-  parse_pipe_chain(tokens, expr)
+  parse_pipe_chain(tokens, expr) |> reassign_check
+}
+
+fn reassign_check(
+  result: Result(#(ast.Expression, List(Token)), ParseError),
+) -> Result(#(ast.Expression, List(Token)), ParseError) {
+  case result {
+    Ok(#(ast.EVariable(name), tokens)) -> {
+      let tokens = skip_newlines(tokens)
+      case tokens {
+        [Equal, ..rest] -> {
+          let rest = skip_newlines(rest)
+          let assert Ok(#(value, rest)) = parse_expression(rest)
+          let rest = skip_newlines(rest)
+          Ok(#(ast.EReassign(name, ast.Box(value)), rest))
+        }
+        _ -> Ok(#(ast.EVariable(name), tokens))
+      }
+    }
+    _ -> result
+  }
 }
 
 fn parse_pipe_chain(
@@ -563,6 +600,26 @@ fn parse_call_cont(
       let call_expr = ast.ECall(ast.Box(expr), args)
       parse_call_cont(rest, call_expr)
     }
+    [Dot, Identifier(name), LParen, ..rest] -> {
+      let rest = skip_newlines(rest)
+      let #(args, rest) = parse_arg_list(rest)
+      let rest = skip_newlines(rest)
+      let assert Ok(#(_, rest)) = expect(rest, RParen)
+      let call_expr = ast.EMethodCall(ast.Box(expr), name, args)
+      parse_call_cont(rest, call_expr)
+    }
+    [Dot, Identifier(name), ..rest] -> {
+      let field_expr = ast.EFieldAccess(ast.Box(expr), name)
+      parse_call_cont(rest, field_expr)
+    }
+    [LBracket, ..rest] -> {
+      let rest = skip_newlines(rest)
+      let assert Ok(#(index, rest)) = parse_expression(rest)
+      let rest = skip_newlines(rest)
+      let assert Ok(#(_, rest)) = expect(rest, RBracket)
+      let index_expr = ast.EIndex(ast.Box(expr), ast.Box(index))
+      parse_call_cont(rest, index_expr)
+    }
     _ -> Ok(#(expr, tokens))
   }
 }
@@ -602,8 +659,21 @@ fn parse_primary(
       Ok(#(ast.ERange(ast.Box(ast.EVariable(name)), ast.Box(end_expr)), rest))
     }
 
+    [Identifier(name), LParen, ..rest] -> {
+      // Peek: if after LParen we see Identifier:Colon → record construction, else → function call
+      let rest_skip = skip_newlines(rest)
+      case rest_skip {
+        [Identifier(_), Colon, ..] -> {
+          let #(fields, rest) = parse_record_fields(rest, [])
+          let rest = skip_newlines(rest)
+          let assert Ok(#(_, rest)) = expect(rest, RParen)
+          Ok(#(ast.ERecord(name, fields), rest))
+        }
+        _ -> Ok(#(ast.EVariable(name), [LParen, ..rest]))
+      }
+    }
+
     [Identifier(name), ..rest] -> {
-      let _ = skip_newlines(rest)
       Ok(#(ast.EVariable(name), rest))
     }
 
@@ -615,9 +685,18 @@ fn parse_primary(
       Ok(#(expr, rest))
     }
 
+    [LBracket, ..rest] -> {
+      let rest = skip_newlines(rest)
+      let #(items, rest) = parse_list_items(rest, [])
+      let rest = skip_newlines(rest)
+      let assert Ok(#(_, rest)) = expect(rest, RBracket)
+      Ok(#(ast.EList(items), rest))
+    }
+
     [If, ..rest] -> parse_if_expr(rest)
     [Match, ..rest] -> parse_match_expr(rest)
     [For, ..rest] -> parse_for_expr(rest)
+    [While, ..rest] -> parse_while_expr(rest)
     [Fn, ..rest] -> parse_lambda(rest)
     [Return, ..rest] -> parse_return_expr(rest)
 
@@ -636,7 +715,55 @@ fn parse_primary(
   }
 }
 
-// if Expression { Expression } else { Expression }
+fn parse_record_fields(
+  tokens: List(Token),
+  acc: List(#(String, ast.Expression)),
+) -> #(List(#(String, ast.Expression)), List(Token)) {
+  let tokens = skip_newlines(tokens)
+  case tokens {
+    [RParen, ..] -> #(list.reverse(acc), tokens)
+    [Identifier(name), Colon, ..rest] -> {
+      let rest = skip_newlines(rest)
+      let assert Ok(#(value, rest)) = parse_expression(rest)
+      let rest = skip_newlines(rest)
+      case rest {
+        [Comma, ..rest2] ->
+          parse_record_fields(rest2, [#(name, value), ..acc])
+        _ -> #(list.reverse([#(name, value), ..acc]), rest)
+      }
+    }
+    _ -> #(list.reverse(acc), tokens)
+  }
+}
+
+fn parse_list_items(
+  tokens: List(Token),
+  acc: List(ast.Expression),
+) -> #(List(ast.Expression), List(Token)) {
+  let tokens = skip_newlines(tokens)
+  case tokens {
+    [RBracket, ..] -> #(list.reverse(acc), tokens)
+    _ -> {
+      let assert Ok(#(expr, rest)) = parse_expression(tokens)
+      let rest = skip_newlines(rest)
+      case rest {
+        [Comma, ..rest2] -> parse_list_items(rest2, [expr, ..acc])
+        _ -> #(list.reverse([expr, ..acc]), rest)
+      }
+    }
+  }
+}
+
+fn parse_while_expr(
+  tokens: List(Token),
+) -> Result(#(ast.Expression, List(Token)), ParseError) {
+  let tokens = skip_newlines(tokens)
+  let assert Ok(#(cond, tokens)) = parse_expression(tokens)
+  let tokens = skip_newlines(tokens)
+  let assert Ok(#(body, tokens)) = parse_block(tokens)
+  Ok(#(ast.EWhile(ast.Box(cond), ast.Box(body)), tokens))
+}
+
 fn parse_if_expr(
   tokens: List(Token),
 ) -> Result(#(ast.Expression, List(Token)), ParseError) {
@@ -645,18 +772,20 @@ fn parse_if_expr(
   let tokens = skip_newlines(tokens)
   let assert Ok(#(conseq, tokens)) = parse_block(tokens)
   let tokens = skip_newlines(tokens)
-
-  let #(alt, tokens) = case tokens {
+  case tokens {
+    [Else, If, ..rest] -> {
+      // else if → recursively parse as nested EIf in the alt position
+      let rest = skip_newlines(rest)
+      let assert Ok(#(alt, rest)) = parse_if_expr(rest)
+      Ok(#(ast.EIf(ast.Box(cond), ast.Box(conseq), [], Some(ast.Box(alt))), rest))
+    }
     [Else, ..rest] -> {
       let rest = skip_newlines(rest)
       let assert Ok(#(alt_body, rest)) = parse_block(rest)
-      #(alt_body, rest)
+      Ok(#(ast.EIf(ast.Box(cond), ast.Box(conseq), [], Some(ast.Box(alt_body))), rest))
     }
-    _ -> #(ast.ELiteral(ast.LBool(False)), tokens)
-    // no else = false
+    _ -> Ok(#(ast.EIf(ast.Box(cond), ast.Box(conseq), [], None), tokens))
   }
-
-  Ok(#(ast.EIf(ast.Box(cond), ast.Box(conseq), ast.Box(alt)), tokens))
 }
 
 // match Expression { Pattern -> Expression ... }

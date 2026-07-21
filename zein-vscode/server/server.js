@@ -45,11 +45,9 @@ function findZeinBinary() {
   for (const name of wrappers) {
     const p = path.join(projectDir, name);
     try {
-      const out = execFileSync(p, ["--help"], { encoding: "utf-8", timeout: 2000 });
-      if (out.includes("usage:")) {
-        console.error("[zein-lsp] found at", p);
-        return p;
-      }
+      execFileSync(p, ["--version"], { encoding: "utf-8", timeout: 2000, stdio: "ignore" });
+      console.error("[zein-lsp] found at", p);
+      return p;
     } catch (e) {
       console.error("[zein-lsp]", name, "failed:", e.message.slice(0, 80));
     }
@@ -59,11 +57,9 @@ function findZeinBinary() {
   for (const name of wrappers) {
     const p = path.join(__dirname, "..", "..", name);
     try {
-      const out = execFileSync(p, ["--help"], { encoding: "utf-8", timeout: 2000 });
-      if (out.includes("usage:")) {
-        console.error("[zein-lsp] found at", p);
-        return p;
-      }
+      execFileSync(p, ["--version"], { encoding: "utf-8", timeout: 2000, stdio: "ignore" });
+      console.error("[zein-lsp] found at", p);
+      return p;
     } catch (e) {
       console.error("[zein-lsp]", name, "failed:", e.message.slice(0, 80));
     }

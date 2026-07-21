@@ -14,11 +14,15 @@ import typechecker
 @external(javascript, "./zein_ffi.mjs", "halt")
 pub fn halt(code: Int) -> Nil
 
+const version = "0.1.0"
+
 pub fn main() -> Nil {
   let args = argv.load().arguments
   case args {
     ["--help", ..] -> print_usage()
     ["-h", ..] -> print_usage()
+    ["--version", ..] -> io.println("Zein " <> version)
+    ["-v", ..] -> io.println("Zein " <> version)
     ["--diagnostics", filename, ..] -> diagnostics(filename)
     ["--compile", filename, ..] ->
       case read_source(filename) {
@@ -35,7 +39,7 @@ pub fn main() -> Nil {
 }
 
 fn print_usage() -> Nil {
-  io.println("usage: zein [--compile|--diagnostics|--help] <filename.zn>")
+  io.println("usage: zein [--compile|--diagnostics|--help|--version] <filename.zn>")
 }
 
 fn read_source(filename: String) -> Result(String, Nil) {

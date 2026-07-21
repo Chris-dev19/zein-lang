@@ -17,7 +17,8 @@ const documents = new TextDocuments(TextDocument);
 let zeinPath;
 
 const completions = [
-  { label: "import", kind: CompletionItemKind.Keyword, detail: "import path", insertText: "import ${1}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "module", kind: CompletionItemKind.Keyword, detail: "module name { }", insertText: "module ${1} {\n  ${2}\n}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "import", kind: CompletionItemKind.Keyword, detail: "import path as alias", insertText: "import ${1} as ${2}", insertTextFormat: InsertTextFormat.Snippet },
   { label: "fn",     kind: CompletionItemKind.Keyword, detail: "fn name() { }", insertText: "fn ${1}(${2}) {\n  ${3}\n}", insertTextFormat: InsertTextFormat.Snippet },
   { label: "let",    kind: CompletionItemKind.Keyword, detail: "let name = value", insertText: "let ${1} = ${2}", insertTextFormat: InsertTextFormat.Snippet },
   { label: "type",   kind: CompletionItemKind.Keyword, detail: "type Name { Variant }", insertText: "type ${1} {\n  ${2}\n}", insertTextFormat: InsertTextFormat.Snippet },

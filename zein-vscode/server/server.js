@@ -4,6 +4,7 @@ const {
   DiagnosticSeverity,
   Diagnostic,
   CompletionItemKind,
+  InsertTextFormat,
 } = require("vscode-languageserver/node");
 const { TextDocument } = require("vscode-languageserver-textdocument");
 const { execFileSync, execSync } = require("child_process");
@@ -19,28 +20,33 @@ const completions = [
   { label: "module", kind: CompletionItemKind.Keyword, detail: "module declaration" },
   { label: "import", kind: CompletionItemKind.Keyword, detail: "import module" },
   { label: "as",     kind: CompletionItemKind.Keyword, detail: "import alias" },
-  { label: "fn",     kind: CompletionItemKind.Keyword, detail: "function declaration" },
-  { label: "let",    kind: CompletionItemKind.Keyword, detail: "variable binding" },
-  { label: "type",   kind: CompletionItemKind.Keyword, detail: "type definition" },
-  { label: "if",     kind: CompletionItemKind.Keyword, detail: "conditional" },
+  { label: "fn",     kind: CompletionItemKind.Keyword, detail: "function declaration", insertText: "fn ${1:name}(${2:params}) {\n  ${3:body}\n}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "let",    kind: CompletionItemKind.Keyword, detail: "variable binding", insertText: "let ${1:name} = ${2:value}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "type",   kind: CompletionItemKind.Keyword, detail: "type definition", insertText: "type ${1:Name} {\n  ${2:Variant}\n}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "if",     kind: CompletionItemKind.Keyword, detail: "if expression", insertText: "if ${1:cond} {\n  ${2:body}\n} else {\n  ${3:else}\n}", insertTextFormat: InsertTextFormat.Snippet },
   { label: "else",   kind: CompletionItemKind.Keyword, detail: "else branch" },
-  { label: "match",  kind: CompletionItemKind.Keyword, detail: "pattern matching" },
-  { label: "for",    kind: CompletionItemKind.Keyword, detail: "for loop" },
-  { label: "in",     kind: CompletionItemKind.Keyword, detail: "iterator" },
-  { label: "return", kind: CompletionItemKind.Keyword, detail: "return value" },
-  { label: "true",   kind: CompletionItemKind.Keyword, detail: "boolean literal" },
-  { label: "false",  kind: CompletionItemKind.Keyword, detail: "boolean literal" },
+  { label: "else if", kind: CompletionItemKind.Keyword, detail: "else-if branch", insertText: "else if ${1:cond} {\n  ${2:body}\n}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "while",  kind: CompletionItemKind.Keyword, detail: "while loop", insertText: "while ${1:cond} {\n  ${2:body}\n}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "for",    kind: CompletionItemKind.Keyword, detail: "for loop", insertText: "for ${1:x} in ${2:iterable} {\n  ${3:body}\n}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "in",     kind: CompletionItemKind.Keyword, detail: "iterator keyword" },
+  { label: "match",  kind: CompletionItemKind.Keyword, detail: "pattern matching", insertText: "match ${1:expr} {\n  ${2:pattern} -> ${3:body}\n}", insertTextFormat: InsertTextFormat.Snippet },
+  { label: "return", kind: CompletionItemKind.Keyword, detail: "return from function" },
+  { label: "true",   kind: CompletionItemKind.Keyword, detail: "boolean true" },
+  { label: "false",  kind: CompletionItemKind.Keyword, detail: "boolean false" },
   { label: "_",      kind: CompletionItemKind.Keyword, detail: "wildcard pattern" },
-  { label: "Int",    kind: CompletionItemKind.TypeParameter, detail: "built-in integer" },
-  { label: "Float",  kind: CompletionItemKind.TypeParameter, detail: "built-in float" },
-  { label: "String", kind: CompletionItemKind.TypeParameter, detail: "built-in string" },
-  { label: "Bool",   kind: CompletionItemKind.TypeParameter, detail: "built-in boolean" },
-  { label: "print",  kind: CompletionItemKind.Function, detail: "print value (built-in)" },
+
+  { label: "Int",    kind: CompletionItemKind.TypeParameter, detail: "built-in integer type" },
+  { label: "Float",  kind: CompletionItemKind.TypeParameter, detail: "built-in float type" },
+  { label: "String", kind: CompletionItemKind.TypeParameter, detail: "built-in string type" },
+  { label: "Bool",   kind: CompletionItemKind.TypeParameter, detail: "built-in boolean type" },
+  { label: "Nil",    kind: CompletionItemKind.TypeParameter, detail: "built-in unit type" },
+  { label: "List",   kind: CompletionItemKind.TypeParameter, detail: "built-in list type" },
+
+  { label: "print",  kind: CompletionItemKind.Function, detail: "print value (built-in)", insertText: "print(${1:value})", insertTextFormat: InsertTextFormat.Snippet },
 ];
 
 function findZeinBinary() {
   const projectDir = "/home/jose/Documents/Default Project/lang";
-  // Try the node wrapper first (fastest)
   const wrappers = ["zeinc", "zein"];
   for (const name of wrappers) {
     const p = path.join(projectDir, name);
@@ -53,7 +59,6 @@ function findZeinBinary() {
     }
   }
 
-  // Try relative to extension
   for (const name of wrappers) {
     const p = path.join(__dirname, "..", "..", name);
     try {
@@ -65,7 +70,6 @@ function findZeinBinary() {
     }
   }
 
-  // Look in PATH
   for (const name of wrappers) {
     try {
       const which = execSync("which " + name, { encoding: "utf-8" }).trim();
@@ -80,6 +84,24 @@ function findZeinBinary() {
   return null;
 }
 
+function extractFileIdentifiers(text) {
+  const idents = [];
+  const fnRe = /(?:^|\n)\s*(?:fn\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*[({]/gm;
+  let m;
+  while ((m = fnRe.exec(text)) !== null) {
+    idents.push({ label: m[1], kind: CompletionItemKind.Function });
+  }
+  const typeRe = /(?:^|\n)\s*type\s+([A-Z][a-zA-Z0-9_]*)/gm;
+  while ((m = typeRe.exec(text)) !== null) {
+    idents.push({ label: m[1], kind: CompletionItemKind.Class });
+  }
+  const letRe = /(?:^|\n)\s*let\s+([a-zA-Z_][a-zA-Z0-9_]*)/gm;
+  while ((m = letRe.exec(text)) !== null) {
+    idents.push({ label: m[1], kind: CompletionItemKind.Variable });
+  }
+  return idents;
+}
+
 connection.onInitialize((params) => {
   zeinPath = (params.initializationOptions || {}).zeinPath || findZeinBinary();
   console.error("[zein-lsp] using binary:", zeinPath);
@@ -87,7 +109,7 @@ connection.onInitialize((params) => {
     capabilities: {
       textDocumentSync: documents.syncKind,
       completionProvider: {
-        triggerCharacters: [":", ".", ">", "|", "-", " ", "("],
+        triggerCharacters: [":", ".", ">", "|", "-", " ", "(", "\n"],
         resolveProvider: false,
       },
     },
@@ -110,12 +132,11 @@ connection.onCompletion((params) => {
   const extracted = completions.filter(c => c.label.toLowerCase().startsWith(prefix));
 
   const seen = new Set(completions.map(c => c.label));
-  const identRe = /[a-zA-Z_][a-zA-Z0-9_]*/g;
-  let m;
-  while ((m = identRe.exec(text)) !== null) {
-    if (!seen.has(m[0])) {
-      seen.add(m[0]);
-      extracted.push({ label: m[0], kind: CompletionItemKind.Variable });
+  const fileIdents = extractFileIdentifiers(text);
+  for (const ident of fileIdents) {
+    if (!seen.has(ident.label)) {
+      seen.add(ident.label);
+      extracted.push(ident);
     }
   }
 

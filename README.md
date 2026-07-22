@@ -77,7 +77,7 @@ Features: syntax highlighting, live diagnostics, autocomplete.
 
 ## Documentation
 
-Full language tour: [zein.dev](https://zein.dev)
+Full language tour: [zein-lang-website.vercel.app](https://zein-lang-website.vercel.app)
 
 ## Building
 

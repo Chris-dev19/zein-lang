@@ -5,10 +5,11 @@ import gleam/result
 import tokenizer.{
   type Token, AndAnd, Arrow, As, Bang, BangEqual, Colon, Comma, Concat, Dot,
   DotDot, EOF, Else, Equal, EqualEqual, FalseToken, FloatLiteral, Fn, For,
-  Greater, GreaterEqual, Identifier,   If, Import, In, IntLiteral, LBrace,
+  Greater, GreaterEqual, Identifier, If, Import, In, IntLiteral, LBrace,
   LBracket, LParen, Less, LessEqual, Let, Match, Minus, Newline, OrOr,
-  Percent, Pipe, Plus, RBrace, RBracket, RParen, Return, Slash, Star,
-  StringLiteral, TrueToken, Type, Underscore, While,
+  Percent, Pipe, Plus, PlusEqual, MinusEqual, StarEqual, SlashEqual, RBrace,
+  RBracket, RParen, Return, Slash, Star, StringLiteral, TrueToken, Type,
+  Underscore, While,
 }
 
 pub type ParseError {
@@ -60,6 +61,10 @@ fn token_name(t: Token) -> String {
     Star -> "*"
     Slash -> "/"
     Percent -> "%"
+    PlusEqual -> "+="
+    MinusEqual -> "-="
+    StarEqual -> "*="
+    SlashEqual -> "/="
     EqualEqual -> "=="
     BangEqual -> "!="
     Less -> "<"
@@ -533,6 +538,34 @@ fn reassign_check(
           let assert Ok(#(value, rest)) = parse_expression(rest)
           let rest = skip_newlines(rest)
           Ok(#(ast.EReassign(name, ast.Box(value)), rest))
+        }
+        [PlusEqual, ..rest] -> {
+          let rest = skip_newlines(rest)
+          let assert Ok(#(value, rest)) = parse_expression(rest)
+          let rest = skip_newlines(rest)
+          let op = ast.EInfix(ast.Box(ast.EVariable(name)), ast.Add, ast.Box(value))
+          Ok(#(ast.EReassign(name, ast.Box(op)), rest))
+        }
+        [MinusEqual, ..rest] -> {
+          let rest = skip_newlines(rest)
+          let assert Ok(#(value, rest)) = parse_expression(rest)
+          let rest = skip_newlines(rest)
+          let op = ast.EInfix(ast.Box(ast.EVariable(name)), ast.Subtract, ast.Box(value))
+          Ok(#(ast.EReassign(name, ast.Box(op)), rest))
+        }
+        [StarEqual, ..rest] -> {
+          let rest = skip_newlines(rest)
+          let assert Ok(#(value, rest)) = parse_expression(rest)
+          let rest = skip_newlines(rest)
+          let op = ast.EInfix(ast.Box(ast.EVariable(name)), ast.Multiply, ast.Box(value))
+          Ok(#(ast.EReassign(name, ast.Box(op)), rest))
+        }
+        [SlashEqual, ..rest] -> {
+          let rest = skip_newlines(rest)
+          let assert Ok(#(value, rest)) = parse_expression(rest)
+          let rest = skip_newlines(rest)
+          let op = ast.EInfix(ast.Box(ast.EVariable(name)), ast.Divide, ast.Box(value))
+          Ok(#(ast.EReassign(name, ast.Box(op)), rest))
         }
         _ -> Ok(#(ast.EVariable(name), tokens))
       }

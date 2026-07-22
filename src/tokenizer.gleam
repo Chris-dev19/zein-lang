@@ -84,6 +84,10 @@ pub type Token {
   Star
   Slash
   Percent
+  PlusEqual
+  MinusEqual
+  StarEqual
+  SlashEqual
   EqualEqual
   BangEqual
   Less
@@ -159,23 +163,46 @@ fn do_tokenize(
         "\t" -> do_tokenize(rest, line, col + 1, tokens, errors)
         "\r" -> do_tokenize(rest, line, col + 1, tokens, errors)
 
-        "/" -> {
-          case starts_with(rest, "/") {
-            Ok(comment_rest) ->
-              skip_line_comment(comment_rest, line, col, tokens, errors)
-            _ -> do_tokenize(rest, line, col + 1, [Slash, ..tokens], errors)
+        "+" -> {
+          case starts_with(rest, "=") {
+            Ok(after_peq) ->
+              do_tokenize(after_peq, line, col + 2, [PlusEqual, ..tokens], errors)
+            _ -> do_tokenize(rest, line, col + 1, [Plus, ..tokens], errors)
           }
         }
-
-        "+" -> do_tokenize(rest, line, col + 1, [Plus, ..tokens], errors)
         "-" -> {
           case starts_with(rest, ">") {
             Ok(after_arrow) ->
               do_tokenize(after_arrow, line, col + 2, [Arrow, ..tokens], errors)
-            _ -> do_tokenize(rest, line, col + 1, [Minus, ..tokens], errors)
+            _ -> {
+              case starts_with(rest, "=") {
+                Ok(after_meq) ->
+                  do_tokenize(after_meq, line, col + 2, [MinusEqual, ..tokens], errors)
+                _ -> do_tokenize(rest, line, col + 1, [Minus, ..tokens], errors)
+              }
+            }
           }
         }
-        "*" -> do_tokenize(rest, line, col + 1, [Star, ..tokens], errors)
+        "*" -> {
+          case starts_with(rest, "=") {
+            Ok(after_seq) ->
+              do_tokenize(after_seq, line, col + 2, [StarEqual, ..tokens], errors)
+            _ -> do_tokenize(rest, line, col + 1, [Star, ..tokens], errors)
+          }
+        }
+        "/" -> {
+          case starts_with(rest, "/") {
+            Ok(comment_rest) ->
+              skip_line_comment(comment_rest, line, col, tokens, errors)
+            _ -> {
+              case starts_with(rest, "=") {
+                Ok(after_sleq) ->
+                  do_tokenize(after_sleq, line, col + 2, [SlashEqual, ..tokens], errors)
+                _ -> do_tokenize(rest, line, col + 1, [Slash, ..tokens], errors)
+              }
+            }
+          }
+        }
         "%" -> do_tokenize(rest, line, col + 1, [Percent, ..tokens], errors)
 
         "=" -> {
@@ -579,6 +606,10 @@ pub fn token_name(t: Token) -> String {
     Star -> "*"
     Slash -> "/"
     Percent -> "%"
+    PlusEqual -> "+="
+    MinusEqual -> "-="
+    StarEqual -> "*="
+    SlashEqual -> "/="
     EqualEqual -> "=="
     BangEqual -> "!="
     Less -> "<"

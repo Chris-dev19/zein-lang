@@ -65,7 +65,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 try {
-  const { main } = await import(join(__dirname, 'zeinc-build\\zein\\zein.mjs'));
+  const { main } = await import(join(__dirname, 'zeinc-build/zein/zein.mjs'));
   main();
 } catch (e) {
   const { execFileSync } = await import('child_process');

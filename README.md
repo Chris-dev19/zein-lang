@@ -12,27 +12,14 @@ fn main() {
 
 ## Quick Start
 
-**Just need Node.js 18+**
+**Just need Node.js 18+** — no install required:
 
 ```bash
 git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
 node zeinc main.zn     # compile & run, ~0.11s
 ```
 
-**Install to PATH (recommended)**
-
-```bash
-./install.sh           # detects distro, installs deps, builds, and installs to ~/.local/bin
-zeinc hello.zn
-```
-
-**Manual install (if deps already present)**
-
-```bash
-gleam build && gleam build --target javascript
-npx esbuild build/dev/javascript/*/zein.mjs --bundle --platform=node --outfile=zeinc-bundle.mjs
-sudo cp zeinc-bundle.mjs zeinc.escript zeinc /usr/local/bin/
-```
+The repo includes a pre-built compiler bundle — just clone and run.
 
 ## Features
 
@@ -69,7 +56,104 @@ fn main() {
 
 ## Install
 
-See [install.sh](install.sh) for Linux/macOS or [install.ps1](install.ps1) for Windows. Both scripts detect your platform and install dependencies automatically.
+You only need **Node.js 18+** to run the compiler. Gleam and Erlang are only required if you want to build from source.
+
+### Linux — Debian / Ubuntu
+
+```bash
+git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
+sudo apt update && sudo apt install -y erlang nodejs gleam
+./install.sh
+zeinc hello.zn
+```
+
+If `apt install gleam` is unavailable, try `sudo snap install gleam --classic`.
+
+### Linux — Fedora / RHEL
+
+```bash
+git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
+sudo dnf install -y erlang nodejs gleam
+./install.sh
+zeinc hello.zn
+```
+
+On RHEL, enable EPEL first: `sudo dnf install -y epel-release`.
+
+### Linux — Arch
+
+```bash
+git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
+sudo pacman -S --noconfirm erlang nodejs gleam
+./install.sh
+zeinc hello.zn
+```
+
+### Linux — openSUSE
+
+```bash
+git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
+sudo zypper install -y erlang nodejs gleam
+./install.sh
+zeinc hello.zn
+```
+
+### Linux — NixOS
+
+```bash
+git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
+nix profile install nixpkgs#erlang nixpkgs#nodejs nixpkgs#gleam
+./install.sh
+zeinc hello.zn
+```
+
+### macOS
+
+```bash
+git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
+brew install erlang nodejs gleam
+./install.sh
+zeinc hello.zn
+```
+
+### Windows (PowerShell)
+
+Requires PowerShell 5.1+ and Node.js 18+.
+
+1. **Install Node.js** — download from [nodejs.org](https://nodejs.org/) or run:
+   ```
+   winget install OpenJS.NodeJS.LTS
+   ```
+
+2. **Install Gleam** (for building from source):
+   ```
+   winget install gleam
+   ```
+
+3. **Install Erlang** (required by Gleam) — download from [erlang.org](https://erlang.org/download) or run:
+   ```
+   choco install erlang
+   ```
+
+4. **Clone and build:**
+   ```
+   git clone https://github.com/Chris-dev19/zein-lang
+   cd zein-lang
+   .\install.ps1
+   zeinc hello.zn
+   ```
+
+The installer adds `zeinc` to your user PATH automatically. Restart your terminal after install.
+
+### Manual build (from source)
+
+If you already have Gleam, Erlang, and Node.js:
+
+```bash
+gleam build && gleam build --target javascript && gleam export escript
+npx esbuild build/dev/javascript/*/zein.mjs --bundle --platform=node --outfile=zeinc-bundle.mjs
+sudo cp zeinc-bundle.mjs zeinc.escript zeinc /usr/local/bin/
+```
 
 ## VS Code Extension
 

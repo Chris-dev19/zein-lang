@@ -1,6 +1,0 @@
-import random as rng
-
-fn main {
-  print(random_int(100))
-  
-}

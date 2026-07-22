@@ -11,4 +11,3 @@ zein-vscode/*.vsix
 zein-vscode/server/node_modules/
 website/
 /zein
-zeinc-bundle.mjs

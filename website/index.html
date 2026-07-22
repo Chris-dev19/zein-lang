@@ -139,7 +139,7 @@
       font-weight: 600;
       font-size: 0.9rem;
     }
-    .btn.ghost { background: transparent; border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; }
+    .btn.ghost { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
 
     pre, .code-block {
       background: var(--surface);
@@ -297,8 +297,10 @@
   <h1><em>Zein</em></h1>
   <p class="tagline">Learn Once, Practice Forever</p>
   <p>A minimal, statically-typed language with Go-like syntax, Hindley-Milner inference, and mutation — compiles to JavaScript. No runtime, no shim, just Node.js.</p>
-  <a href="#why" class="btn">Why Zein?</a>
-  <a href="#install" class="btn ghost">Get Started</a>
+  <div style="display:flex;gap:8px">
+    <a href="#why" class="btn">Why Zein?</a>
+    <a href="#install" class="btn ghost">Get Started</a>
+  </div>
 </header>
 
 <section id="why">

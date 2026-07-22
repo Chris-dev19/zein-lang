@@ -10,11 +10,13 @@ const { TextDocument } = require("vscode-languageserver-textdocument");
 const { execFileSync, execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 
 const connection = createConnection();
 const documents = new TextDocuments(TextDocument);
 
 let zeinPath;
+let diagTimer = {};
 
 const completions = [
   { label: "module", kind: CompletionItemKind.Keyword, detail: "module name { }", insertText: "module ${1} {\n  ${2}\n}", insertTextFormat: InsertTextFormat.Snippet },
@@ -46,41 +48,22 @@ const completions = [
 ];
 
 function findZeinBinary() {
-  const projectDir = "/home/jose/Documents/Default Project/lang";
-  const wrappers = ["zeinc", "zein"];
-  for (const name of wrappers) {
-    const p = path.join(projectDir, name);
+  const searchPaths = [
+    path.join(__dirname, "..", "..", "zeinc"),
+    path.join(__dirname, "..", "..", "zein"),
+  ];
+  for (const p of searchPaths) {
     try {
       execFileSync(p, ["--version"], { encoding: "utf-8", timeout: 2000, stdio: "ignore" });
-      console.error("[zein-lsp] found at", p);
       return p;
-    } catch (e) {
-      console.error("[zein-lsp]", name, "failed:", e.message.slice(0, 80));
-    }
+    } catch {}
   }
-
-  for (const name of wrappers) {
-    const p = path.join(__dirname, "..", "..", name);
-    try {
-      execFileSync(p, ["--version"], { encoding: "utf-8", timeout: 2000, stdio: "ignore" });
-      console.error("[zein-lsp] found at", p);
-      return p;
-    } catch (e) {
-      console.error("[zein-lsp]", name, "failed:", e.message.slice(0, 80));
-    }
-  }
-
-  for (const name of wrappers) {
+  for (const name of ["zeinc", "zein"]) {
     try {
       const which = execSync("which " + name, { encoding: "utf-8" }).trim();
-      console.error("[zein-lsp] found", name, "in PATH:", which);
       return which;
-    } catch {
-      console.error("[zein-lsp]", name, "not in PATH");
-    }
+    } catch {}
   }
-
-  console.error("[zein-lsp] no candidate worked");
   return null;
 }
 
@@ -118,10 +101,7 @@ connection.onInitialize((params) => {
 
 connection.onCompletion((params) => {
   const doc = documents.get(params.textDocument.uri);
-  if (!doc) {
-    console.error("[zein-lsp] no document for", params.textDocument.uri);
-    return [];
-  }
+  if (!doc) return [];
 
   const text = doc.getText();
   const line = text.split("\n")[params.position.line] || "";
@@ -144,51 +124,61 @@ connection.onCompletion((params) => {
 });
 
 function runDiagnostics(uri, text) {
-  const diagnostics = [];
   if (!zeinPath) {
-    diagnostics.push(
-      Diagnostic.create(
-        { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
-        "LSP error: zeinc not found — run install.sh or set zeinPath in extension settings",
-        DiagnosticSeverity.Error
-      )
-    );
-    connection.sendDiagnostics({ uri, diagnostics });
+    connection.sendDiagnostics({ uri, diagnostics: [Diagnostic.create(
+      { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+      "zeinc not found — run install.sh or set zeinPath in extension settings",
+      DiagnosticSeverity.Error
+    )] });
     return;
   }
+
+  const tmpFile = path.join(os.tmpdir(), "zein_" + Date.now() + ".zn");
   try {
-    const filePath = uri.startsWith("file://") ? decodeURIComponent(new URL(uri).pathname) : uri;
-    const out = execFileSync(zeinPath, ["--diagnostics", filePath], {
-      input: text,
+    fs.writeFileSync(tmpFile, text, "utf-8");
+    const out = execFileSync(zeinPath, ["--diagnostics", tmpFile], {
       encoding: "utf-8",
       maxBuffer: 1024 * 1024,
     });
-    for (const d of JSON.parse(out)) {
-      diagnostics.push(
-        Diagnostic.create(
-          {
-            start: { line: d.range.start.line, character: d.range.start.character },
-            end:   { line: d.range.end.line,   character: d.range.end.character },
-          },
-          d.message,
-          d.severity === "error" ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning
-        )
-      );
+    const parsed = JSON.parse(out);
+    const diagnostics = [];
+    for (const d of parsed) {
+      diagnostics.push(Diagnostic.create(
+        { start: { line: d.range.start.line, character: d.range.start.character },
+          end:   { line: d.range.end.line,   character: d.range.end.character } },
+        d.message,
+        d.severity === "error" ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning
+      ));
     }
+    connection.sendDiagnostics({ uri, diagnostics });
   } catch (e) {
-    diagnostics.push(
-      Diagnostic.create(
-        { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
-        `LSP error: ${e.message}`,
-        DiagnosticSeverity.Error
-      )
-    );
+    connection.sendDiagnostics({ uri, diagnostics: [Diagnostic.create(
+      { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+      `LSP error: ${e.message}`,
+      DiagnosticSeverity.Error
+    )] });
+  } finally {
+    try { fs.unlinkSync(tmpFile); } catch {}
   }
-  connection.sendDiagnostics({ uri, diagnostics });
+}
+
+function debouncedDiagnostics(uri, text) {
+  if (diagTimer[uri]) clearTimeout(diagTimer[uri]);
+  diagTimer[uri] = setTimeout(() => {
+    delete diagTimer[uri];
+    runDiagnostics(uri, text);
+  }, 300);
 }
 
 documents.onDidOpen((e) => runDiagnostics(e.document.uri, e.document.getText()));
-documents.onDidChangeContent((e) => runDiagnostics(e.document.uri, e.document.getText()));
+documents.onDidChangeContent((e) => debouncedDiagnostics(e.document.uri, e.document.getText()));
+documents.onDidClose((e) => {
+  if (diagTimer[e.document.uri]) {
+    clearTimeout(diagTimer[e.document.uri]);
+    delete diagTimer[e.document.uri];
+  }
+  connection.sendDiagnostics({ uri: e.document.uri, diagnostics: [] });
+});
 
 documents.listen(connection);
 connection.listen();

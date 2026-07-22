@@ -160,26 +160,33 @@ fn diagnostics(filename: String) -> Nil {
 fn run_diagnostics(source: String) -> Nil {
   let res = tokenizer.tokenize(source)
 
-  let diags =
-    list.flatten([
-      res.errors
-        |> list.map(fn(e) { mk_diag("error", e.message, e.line, e.col) }),
-      case parser.parse_module(res.tokens) {
-        Ok(#(mod, _remaining)) -> {
-          case typechecker.check_module(mod) {
-            Ok(_state) -> []
-            Error(errors) ->
-              errors
-              |> list.map(fn(e) { mk_diag("error", e.message, 0, 0) })
-          }
-        }
-        Error(e) -> [
-          mk_diag("error", "parse error: " <> parser_error_string(e), 0, 0),
-        ]
-      },
-    ])
+  let token_diags =
+    res.errors
+    |> list.map(fn(e) { mk_diag("error", e.message, e.line, e.col) })
 
-  io.print(json.to_string(json.preprocessed_array(diags)))
+  let parse_diags = case parser.parse_module(res.tokens) {
+    Ok(#(mod, _remaining)) -> {
+      case typechecker.check_module(mod) {
+        Ok(_state) -> []
+        Error(errors) ->
+          errors
+          |> list.map(fn(e) { mk_diag("error", e.message, 0, 0) })
+      }
+    }
+    Error(e) -> parse_error_diags(e)
+  }
+
+  io.print(json.to_string(json.preprocessed_array(list.flatten([token_diags, parse_diags]))))
+}
+
+fn parse_error_diags(e: parser.ParseError) -> List(json.Json) {
+  case e {
+    parser.ParseError(expected, found, line, col) -> [
+      mk_diag("error", "expected " <> expected <> ", found " <> tokenizer.token_name(found), line, col),
+    ]
+    parser.ParseErrors(errors) ->
+      errors |> list.map(fn(e) { parse_error_diags(e) }) |> list.flatten
+  }
 }
 
 fn mk_diag(

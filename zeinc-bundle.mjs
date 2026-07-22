@@ -1,4 +1,41 @@
-// zeinc-build/prelude.mjs
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from2, except, desc) => {
+  if (from2 && typeof from2 === "object" || typeof from2 === "function") {
+    for (let key of __getOwnPropNames(from2))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc(from2, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// build/dev/javascript/zein/zein.mjs
+var zein_exports = {};
+__export(zein_exports, {
+  halt: () => halt,
+  main: () => main,
+  run_js_native: () => run_js
+});
+module.exports = __toCommonJS(zein_exports);
+
+// build/dev/javascript/prelude.mjs
 var CustomType = class {
   withFields(fields) {
     let properties = Object.keys(this).map(
@@ -271,7 +308,7 @@ var Ok = class extends Result {
   }
 };
 var Result$Ok = (value) => new Ok(value);
-var Error = class extends Result {
+var Error2 = class extends Result {
   constructor(detail) {
     super();
     this[0] = detail;
@@ -280,7 +317,7 @@ var Error = class extends Result {
     return false;
   }
 };
-var Result$Error = (detail) => new Error(detail);
+var Result$Error = (detail) => new Error2(detail);
 function isEqual(x, y) {
   let values2 = [x, y];
   while (values2.length) {
@@ -351,11 +388,11 @@ function divideFloat(a, b) {
     return a / b;
   }
 }
-function makeError(variant, file, module, line, fn, message, extra) {
+function makeError(variant, file, module2, line, fn, message, extra) {
   let error = new globalThis.Error(message);
   error.gleam_error = variant;
   error.file = file;
-  error.module = module;
+  error.module = module2;
   error.line = line;
   error.function = fn;
   error.fn = fn;
@@ -363,7 +400,7 @@ function makeError(variant, file, module, line, fn, message, extra) {
   return error;
 }
 
-// zeinc-build/argv/argv_ffi.mjs
+// build/dev/javascript/argv/argv_ffi.mjs
 function load() {
   if (globalThis.process) {
     const [runtime2, program2, ...args2] = process.argv;
@@ -381,7 +418,7 @@ function load() {
   return [runtime, program, args];
 }
 
-// zeinc-build/argv/argv.mjs
+// build/dev/javascript/argv/argv.mjs
 var Argv = class extends CustomType {
   constructor(runtime, program, arguments$) {
     super();
@@ -398,7 +435,7 @@ function load2() {
   return new Argv(runtime, program, arguments$);
 }
 
-// zeinc-build/gleam_stdlib/gleam/option.mjs
+// build/dev/javascript/gleam_stdlib/gleam/option.mjs
 var Some = class extends CustomType {
   constructor($0) {
     super();
@@ -408,7 +445,7 @@ var Some = class extends CustomType {
 var None = class extends CustomType {
 };
 
-// zeinc-build/gleam_stdlib/dict.mjs
+// build/dev/javascript/gleam_stdlib/dict.mjs
 var Dict = class {
   constructor(size2, root) {
     this.size = size2;
@@ -438,7 +475,7 @@ function popcount(n) {
   return Math.imul(n + (n >>> 4) & 252645135, 16843009) >>> 24;
 }
 
-// zeinc-build/gleam_stdlib/gleam/list.mjs
+// build/dev/javascript/gleam_stdlib/gleam/list.mjs
 function length_loop(loop$list, loop$count) {
   while (true) {
     let list2 = loop$list;
@@ -599,7 +636,7 @@ function each(loop$list, loop$f) {
   }
 }
 
-// zeinc-build/gleam_stdlib/gleam_stdlib.mjs
+// build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
 var Nil = void 0;
 function identity(x) {
   return x;
@@ -901,7 +938,7 @@ function isList(data2) {
   return List$isEmpty(data2) || List$isNonEmpty(data2);
 }
 
-// zeinc-build/gleam_stdlib/gleam/string.mjs
+// build/dev/javascript/gleam_stdlib/gleam/string.mjs
 function replace(string3, pattern, substitute) {
   let _pipe = string3;
   let _pipe$1 = identity(_pipe);
@@ -954,7 +991,7 @@ function inspect2(term) {
   return identity(_pipe$1);
 }
 
-// zeinc-build/gleam_stdlib/gleam/result.mjs
+// build/dev/javascript/gleam_stdlib/gleam/result.mjs
 function try$(result, fun) {
   if (result instanceof Ok) {
     let x = result[0];
@@ -964,7 +1001,7 @@ function try$(result, fun) {
   }
 }
 
-// zeinc-build/gleam_json/gleam_json_ffi.mjs
+// build/dev/javascript/gleam_json/gleam_json_ffi.mjs
 function json_to_string(json) {
   return JSON.stringify(json);
 }
@@ -983,7 +1020,7 @@ function array(list2) {
   return array2;
 }
 
-// zeinc-build/gleam_json/gleam/json.mjs
+// build/dev/javascript/gleam_json/gleam/json.mjs
 function to_string2(json) {
   return json_to_string(json);
 }
@@ -1000,12 +1037,12 @@ function preprocessed_array(from2) {
   return array(from2);
 }
 
-// zeinc-build/simplifile/simplifile_js.mjs
-import fs from "node:fs";
-import path from "node:path";
+// build/dev/javascript/simplifile/simplifile_js.mjs
+var import_node_fs = __toESM(require("node:fs"), 1);
+var import_node_path = __toESM(require("node:path"), 1);
 function readBits(filepath) {
   return gleamResult(() => {
-    const contents = fs.readFileSync(path.normalize(filepath));
+    const contents = import_node_fs.default.readFileSync(import_node_path.default.normalize(filepath));
     return new BitArray(new Uint8Array(contents));
   });
 }
@@ -1014,7 +1051,7 @@ function gleamResult(op) {
     const val = op();
     return new Ok(val);
   } catch (e) {
-    return new Error(cast_error(e.code));
+    return new Error2(cast_error(e.code));
   }
 }
 function cast_error(error_code) {
@@ -1120,7 +1157,7 @@ function cast_error(error_code) {
   }
 }
 
-// zeinc-build/simplifile/simplifile.mjs
+// build/dev/javascript/simplifile/simplifile.mjs
 var Eacces = class extends CustomType {
 };
 var Eagain = class extends CustomType {
@@ -1231,14 +1268,14 @@ function read(filepath) {
     if ($1 instanceof Ok) {
       return $1;
     } else {
-      return new Error(new NotUtf8());
+      return new Error2(new NotUtf8());
     }
   } else {
     return $;
   }
 }
 
-// zeinc-build/zein/ast.mjs
+// build/dev/javascript/zein/ast.mjs
 var Box = class extends CustomType {
   constructor($0) {
     super();
@@ -1598,7 +1635,7 @@ var Module = class extends CustomType {
   }
 };
 
-// zeinc-build/zein/codegen.mjs
+// build/dev/javascript/zein/codegen.mjs
 function unwrap_ann(boxed) {
   let t = boxed[0];
   return generate_type(t);
@@ -2193,11 +2230,11 @@ function generate_definition(def) {
     return "let " + name + t_str + " = " + generate_expression(value);
   }
 }
-function generate(module) {
-  let defs = map2(module.definitions, generate_definition);
+function generate(module2) {
+  let defs = map2(module2.definitions, generate_definition);
   let defs_str = join(defs, "\n\n");
   let has_main = any(
-    module.definitions,
+    module2.definitions,
     (d) => {
       if (d instanceof DefFunction) {
         let $ = d.name;
@@ -2221,7 +2258,7 @@ function generate(module) {
   return new Ok(defs_str + call);
 }
 
-// zeinc-build/zein/tokenizer.mjs
+// build/dev/javascript/zein/tokenizer.mjs
 var Import2 = class extends CustomType {
 };
 var As = class extends CustomType {
@@ -2446,15 +2483,15 @@ function power3(base, exp2) {
 }
 function parse_float2(s) {
   if (s === "") {
-    return new Error(void 0);
+    return new Error2(void 0);
   } else {
     let parts = split2(s, ".");
     if (parts instanceof Empty) {
-      return new Error(void 0);
+      return new Error2(void 0);
     } else {
       let $ = parts.tail;
       if ($ instanceof Empty) {
-        return new Error(void 0);
+        return new Error2(void 0);
       } else {
         let $1 = $.tail;
         if ($1 instanceof Empty) {
@@ -2475,16 +2512,16 @@ function parse_float2(s) {
                 );
                 return new Ok(result);
               } else {
-                return new Error(void 0);
+                return new Error2(void 0);
               }
             } else {
-              return new Error(void 0);
+              return new Error2(void 0);
             }
           } else {
-            return new Error(void 0);
+            return new Error2(void 0);
           }
         } else {
-          return new Error(void 0);
+          return new Error2(void 0);
         }
       }
     }
@@ -2492,14 +2529,14 @@ function parse_float2(s) {
 }
 function starts_with2(chars, expected) {
   if (chars instanceof Empty) {
-    return new Error(void 0);
+    return new Error2(void 0);
   } else {
     let c = chars.head;
     if (c === expected) {
       let rest = chars.tail;
       return new Ok(rest);
     } else {
-      return new Error(void 0);
+      return new Error2(void 0);
     }
   }
 }
@@ -2536,7 +2573,7 @@ function finish_ident(chars, acc, line, col, tokens, errors) {
   } else if (acc === "_") {
     _block = new Ok(new Underscore());
   } else {
-    _block = new Error(void 0);
+    _block = new Error2(void 0);
   }
   let keyword_token = _block;
   let _block$1;
@@ -3245,7 +3282,7 @@ function token_name(t) {
   }
 }
 
-// zeinc-build/zein/parser.mjs
+// build/dev/javascript/zein/parser.mjs
 var FILEPATH = "src/parser.gleam";
 var ParseError = class extends CustomType {
   constructor(expected, found, line, col) {
@@ -3258,7 +3295,7 @@ var ParseError = class extends CustomType {
 };
 function consume(tokens, expected, kind) {
   if (tokens instanceof Empty) {
-    return new Error(new ParseError(expected, new EOF(), 0, 0));
+    return new Error2(new ParseError(expected, new EOF(), 0, 0));
   } else {
     let t = tokens.head;
     let rest = tokens.tail;
@@ -3266,7 +3303,7 @@ function consume(tokens, expected, kind) {
     if ($) {
       return new Ok([t, rest]);
     } else {
-      return new Error(new ParseError(expected, t, 0, 0));
+      return new Error2(new ParseError(expected, t, 0, 0));
     }
   }
 }
@@ -3502,7 +3539,7 @@ function parse_type_list(tokens) {
 function parse_type(tokens) {
   let tokens$1 = skip_newlines(tokens);
   if (tokens$1 instanceof Empty) {
-    return new Error(
+    return new Error2(
       new ParseError(
         "type",
         (() => {
@@ -3609,7 +3646,7 @@ function parse_type(tokens) {
         }
       }
     } else {
-      return new Error(
+      return new Error2(
         new ParseError(
           "type",
           (() => {
@@ -3979,7 +4016,7 @@ function parse_pattern_fields(loop$tokens) {
 function parse_pattern(tokens) {
   let tokens$1 = skip_newlines(tokens);
   if (tokens$1 instanceof Empty) {
-    return new Error(
+    return new Error2(
       new ParseError(
         "pattern",
         (() => {
@@ -4059,7 +4096,7 @@ function parse_pattern(tokens) {
         }
       }
     } else {
-      return new Error(
+      return new Error2(
         new ParseError(
           "pattern",
           (() => {
@@ -6147,7 +6184,7 @@ function parse_record_fields(loop$tokens, loop$acc) {
 function parse_primary(tokens) {
   let tokens$1 = skip_newlines(tokens);
   if (tokens$1 instanceof Empty) {
-    return new Error(
+    return new Error2(
       new ParseError(
         "expression",
         (() => {
@@ -6388,7 +6425,7 @@ function parse_primary(tokens) {
         }
       }
     } else {
-      return new Error(
+      return new Error2(
         new ParseError(
           "expression",
           (() => {
@@ -7780,7 +7817,7 @@ function parse_module(tokens) {
   );
 }
 
-// zeinc-build/zein/typechecker.mjs
+// build/dev/javascript/zein/typechecker.mjs
 var TInt = class extends CustomType {
 };
 var TFloat = class extends CustomType {
@@ -7809,7 +7846,7 @@ var TApp = class extends CustomType {
     this[1] = $1;
   }
 };
-var TypeError = class extends CustomType {
+var TypeError2 = class extends CustomType {
   constructor(message) {
     super();
     this.message = message;
@@ -7854,7 +7891,7 @@ function lookup_env(loop$env, loop$name) {
     let name = loop$name;
     let $ = env.bindings;
     if ($ instanceof Empty) {
-      return new Error(new TypeError("undefined variable: " + name));
+      return new Error2(new TypeError2("undefined variable: " + name));
     } else {
       let rest = $.tail;
       let n = $.head[0];
@@ -8010,10 +8047,10 @@ function unify_lists(loop$l1, loop$l2, loop$state) {
       if (l2 instanceof Empty) {
         return state;
       } else {
-        return add_error(state, new TypeError("type arity mismatch"));
+        return add_error(state, new TypeError2("type arity mismatch"));
       }
     } else if (l2 instanceof Empty) {
-      return add_error(state, new TypeError("type arity mismatch"));
+      return add_error(state, new TypeError2("type arity mismatch"));
     } else {
       let t1 = l1.head;
       let r1 = l1.tail;
@@ -8036,7 +8073,7 @@ function unify(t1, t2, state) {
       let id = t2$1[0];
       let $ = occurs(id, t1$1, state.subs);
       if ($) {
-        return add_error(state, new TypeError("recursive type"));
+        return add_error(state, new TypeError2("recursive type"));
       } else {
         return new TypeCheckerState(
           state.env,
@@ -8048,7 +8085,7 @@ function unify(t1, t2, state) {
     } else {
       return add_error(
         state,
-        new TypeError(type_to_string(t1$1) + " != " + type_to_string(t2$1))
+        new TypeError2(type_to_string(t1$1) + " != " + type_to_string(t2$1))
       );
     }
   } else if (t1$1 instanceof TFloat) {
@@ -8058,7 +8095,7 @@ function unify(t1, t2, state) {
       let id = t2$1[0];
       let $ = occurs(id, t1$1, state.subs);
       if ($) {
-        return add_error(state, new TypeError("recursive type"));
+        return add_error(state, new TypeError2("recursive type"));
       } else {
         return new TypeCheckerState(
           state.env,
@@ -8070,7 +8107,7 @@ function unify(t1, t2, state) {
     } else {
       return add_error(
         state,
-        new TypeError(type_to_string(t1$1) + " != " + type_to_string(t2$1))
+        new TypeError2(type_to_string(t1$1) + " != " + type_to_string(t2$1))
       );
     }
   } else if (t1$1 instanceof TBool) {
@@ -8080,7 +8117,7 @@ function unify(t1, t2, state) {
       let id = t2$1[0];
       let $ = occurs(id, t1$1, state.subs);
       if ($) {
-        return add_error(state, new TypeError("recursive type"));
+        return add_error(state, new TypeError2("recursive type"));
       } else {
         return new TypeCheckerState(
           state.env,
@@ -8092,7 +8129,7 @@ function unify(t1, t2, state) {
     } else {
       return add_error(
         state,
-        new TypeError(type_to_string(t1$1) + " != " + type_to_string(t2$1))
+        new TypeError2(type_to_string(t1$1) + " != " + type_to_string(t2$1))
       );
     }
   } else if (t1$1 instanceof TString) {
@@ -8102,7 +8139,7 @@ function unify(t1, t2, state) {
       let id = t2$1[0];
       let $ = occurs(id, t1$1, state.subs);
       if ($) {
-        return add_error(state, new TypeError("recursive type"));
+        return add_error(state, new TypeError2("recursive type"));
       } else {
         return new TypeCheckerState(
           state.env,
@@ -8114,7 +8151,7 @@ function unify(t1, t2, state) {
     } else {
       return add_error(
         state,
-        new TypeError(type_to_string(t1$1) + " != " + type_to_string(t2$1))
+        new TypeError2(type_to_string(t1$1) + " != " + type_to_string(t2$1))
       );
     }
   } else if (t1$1 instanceof TVar) {
@@ -8127,7 +8164,7 @@ function unify(t1, t2, state) {
         let id = t1$1[0];
         let $ = occurs(id, t2$1, state.subs);
         if ($) {
-          return add_error(state, new TypeError("recursive type"));
+          return add_error(state, new TypeError2("recursive type"));
         } else {
           return new TypeCheckerState(
             state.env,
@@ -8141,7 +8178,7 @@ function unify(t1, t2, state) {
       let id = t1$1[0];
       let $ = occurs(id, t2$1, state.subs);
       if ($) {
-        return add_error(state, new TypeError("recursive type"));
+        return add_error(state, new TypeError2("recursive type"));
       } else {
         return new TypeCheckerState(
           state.env,
@@ -8156,7 +8193,7 @@ function unify(t1, t2, state) {
       let id = t2$1[0];
       let $ = occurs(id, t1$1, state.subs);
       if ($) {
-        return add_error(state, new TypeError("recursive type"));
+        return add_error(state, new TypeError2("recursive type"));
       } else {
         return new TypeCheckerState(
           state.env,
@@ -8175,14 +8212,14 @@ function unify(t1, t2, state) {
     } else {
       return add_error(
         state,
-        new TypeError(type_to_string(t1$1) + " != " + type_to_string(t2$1))
+        new TypeError2(type_to_string(t1$1) + " != " + type_to_string(t2$1))
       );
     }
   } else if (t2$1 instanceof TVar) {
     let id = t2$1[0];
     let $ = occurs(id, t1$1, state.subs);
     if ($) {
-      return add_error(state, new TypeError("recursive type"));
+      return add_error(state, new TypeError2("recursive type"));
     } else {
       return new TypeCheckerState(
         state.env,
@@ -8201,13 +8238,13 @@ function unify(t1, t2, state) {
     } else {
       return add_error(
         state,
-        new TypeError(type_to_string(t1$1) + " != " + type_to_string(t2$1))
+        new TypeError2(type_to_string(t1$1) + " != " + type_to_string(t2$1))
       );
     }
   } else {
     return add_error(
       state,
-      new TypeError(type_to_string(t1$1) + " != " + type_to_string(t2$1))
+      new TypeError2(type_to_string(t1$1) + " != " + type_to_string(t2$1))
     );
   }
 }
@@ -9011,12 +9048,12 @@ function check_module(mod) {
     return new Ok(state$2);
   } else {
     let errors = $1;
-    return new Error(errors);
+    return new Error2(errors);
   }
 }
 
-// zeinc-build/zein/zein_ffi.mjs
-import { execFileSync } from "child_process";
+// build/dev/javascript/zein/zein_ffi.mjs
+var import_child_process = require("child_process");
 function halt(code) {
   process.exit(code);
 }
@@ -9024,7 +9061,7 @@ function run_js(js) {
   eval(js);
 }
 
-// zeinc-build/zein/zein.mjs
+// build/dev/javascript/zein/zein.mjs
 var version = "0.1.0";
 function print_usage() {
   return console_log(
@@ -9051,7 +9088,7 @@ function resolve_imports(mod) {
           if ($1) {
             return new Ok(m);
           } else {
-            return new Error("unknown module: " + imp.path);
+            return new Error2("unknown module: " + imp.path);
           }
         } else {
           return acc;
@@ -9093,7 +9130,7 @@ function generate_js(source) {
           } else {
             let e = $4[0];
             console_log("codegen error: " + e.message);
-            return new Error(void 0);
+            return new Error2(void 0);
           }
         } else {
           let errors = $3[0];
@@ -9102,17 +9139,17 @@ function generate_js(source) {
           each(_pipe, (e) => {
             return console_log("  " + e.message);
           });
-          return new Error(void 0);
+          return new Error2(void 0);
         }
       } else {
         let msg = $2[0];
         console_log(msg);
-        return new Error(void 0);
+        return new Error2(void 0);
       }
     } else {
       let e = $1[0];
       console_log("parse error: " + parser_error_string(e));
-      return new Error(void 0);
+      return new Error2(void 0);
     }
   } else {
     console_log("tokenizer errors:");
@@ -9125,7 +9162,7 @@ function generate_js(source) {
         );
       }
     );
-    return new Error(void 0);
+    return new Error2(void 0);
   }
 }
 function run_source(source) {
@@ -9142,7 +9179,7 @@ function read_source(filename) {
   if ($ instanceof Ok) {
     return $;
   } else {
-    return new Error(void 0);
+    return new Error2(void 0);
   }
 }
 function compile_and_print(source) {
@@ -9187,46 +9224,69 @@ function mk_diag(severity, message, line, col) {
     ])
   );
 }
+function parse_error_diags(e) {
+  if (e instanceof ParseError) {
+    let expected = e.expected;
+    let found = e.found;
+    let line = e.line;
+    let col = e.col;
+    return toList([
+      mk_diag(
+        "error",
+        "expected " + expected + ", found " + token_name(found),
+        line,
+        col
+      )
+    ]);
+  } else {
+    let errors = e[0];
+    let _pipe = errors;
+    let _pipe$1 = map2(_pipe, (e2) => {
+      return parse_error_diags(e2);
+    });
+    return flatten(_pipe$1);
+  }
+}
 function run_diagnostics(source) {
   let res = tokenize(source);
-  let diags = flatten(
-    toList([
-      (() => {
-        let _pipe = res.errors;
-        return map2(
-          _pipe,
-          (e) => {
-            return mk_diag("error", e.message, e.line, e.col);
-          }
-        );
-      })(),
-      (() => {
-        let $ = parse_module(res.tokens);
-        if ($ instanceof Ok) {
-          let mod = $[0][0];
-          let $1 = check_module(mod);
-          if ($1 instanceof Ok) {
-            return toList([]);
-          } else {
-            let errors = $1[0];
-            let _pipe = errors;
-            return map2(
-              _pipe,
-              (e) => {
-                return mk_diag("error", e.message, 0, 0);
-              }
-            );
-          }
-        } else {
-          let e = $[0];
-          return toList([
-            mk_diag("error", "parse error: " + parser_error_string(e), 0, 0)
-          ]);
-        }
-      })()
-    ])
+  let _block;
+  let _pipe = res.errors;
+  _block = map2(
+    _pipe,
+    (e) => {
+      return mk_diag("error", e.message, e.line, e.col);
+    }
   );
-  return print(to_string2(preprocessed_array(diags)));
+  let token_diags = _block;
+  let _block$1;
+  let $ = parse_module(res.tokens);
+  if ($ instanceof Ok) {
+    let mod = $[0][0];
+    let $1 = check_module(mod);
+    if ($1 instanceof Ok) {
+      _block$1 = toList([]);
+    } else {
+      let errors = $1[0];
+      let _pipe$1 = errors;
+      _block$1 = map2(
+        _pipe$1,
+        (e) => {
+          return mk_diag("error", e.message, 0, 0);
+        }
+      );
+    }
+  } else {
+    let e = $[0];
+    _block$1 = parse_error_diags(e);
+  }
+  let parse_diags = _block$1;
+  return print(
+    to_string2(
+      preprocessed_array(
+        flatten(toList([token_diags, parse_diags]))
+      )
+    )
+  );
 }
 function diagnostics(filename) {
   let $ = read_source(filename);
@@ -9305,8 +9365,9 @@ function main() {
     }
   }
 }
-export {
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
   halt,
   main,
-  run_js as run_js_native
-};
+  run_js_native
+});

@@ -1,1 +1,6 @@
-fn main() => print("Hello from zein")
+import random
+
+main {
+  print(random_int(100))
+  // prints a random int between 0 and 100
+}

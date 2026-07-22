@@ -12,21 +12,27 @@ fn main() {
 
 ## Quick Start
 
-**Linux / macOS:**
+**Just need Node.js 18+**
+
 ```bash
-git clone https://github.com/zein-lang/zein && cd zein
-./install.sh       # installs deps + builds from source
-zein hello.zn      # compile and run
+git clone https://github.com/Chris-dev19/zein-lang && cd zein-lang
+node zeinc main.zn     # compile & run, ~0.11s
 ```
 
-**Windows (PowerShell):**
-```powershell
-git clone https://github.com/zein-lang/zein && cd zein
-.\install.ps1      # installs deps + builds from source
-zein hello.zn      # compile and run
+**Install to PATH (recommended)**
+
+```bash
+./install.sh           # detects distro, installs deps, builds, and installs to ~/.local/bin
+zeinc hello.zn
 ```
 
-Requires Gleam 1.17+, Erlang/OTP 27+, and Node.js 18+.
+**Manual install (if deps already present)**
+
+```bash
+gleam build && gleam build --target javascript
+npx esbuild build/dev/javascript/*/zein.mjs --bundle --platform=node --outfile=zeinc-bundle.mjs
+sudo cp zeinc-bundle.mjs zeinc.escript zeinc /usr/local/bin/
+```
 
 ## Features
 
@@ -83,8 +89,9 @@ Full language tour: [zein-lang-website.vercel.app](https://zein-lang-website.ver
 
 ```bash
 gleam build              # Erlang target
-gleam build --target javascript  # JS target (for fast compiler)
+gleam build --target javascript  # JS target
 gleam export escript     # escript fallback
+npx esbuild build/dev/javascript/*/zein.mjs --bundle --platform=node --outfile=zeinc-bundle.mjs
 gleam test               # run tests
 ```
 
@@ -101,7 +108,9 @@ zein/
 │   └── ast.gleam        # AST type definitions
 ├── zein-vscode/         # VS Code extension
 ├── website/             # Documentation site (Vercel)
-├── zeinc                # Node.js compiler launcher (generated)
+├── zeinc                # Node.js compiler launcher (committed)
+├── zeinc-bundle.mjs     # Pre-built JS bundle (fastest startup)
+├── zeinc.escript        # Erlang escript fallback (generated)
 ├── zein                 # Shell wrapper (generated)
 └── install.sh           # Build & install script
 ```

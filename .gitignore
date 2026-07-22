@@ -5,6 +5,8 @@ erl_crash.dump
 node_modules/
 zeinc-build/
 zeinc.escript
+zeinc-fast
+zeinc-build/
 zein-vscode/node_modules/
 zein-vscode/out/
 zein-vscode/*.vsix

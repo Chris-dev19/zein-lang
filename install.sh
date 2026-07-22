@@ -99,17 +99,25 @@ build_compiler() {
   gleam build
   gleam test
 
-  # Build JS target
+  # Build JS target and bundle it
   gleam build --target javascript
 
   # Generate escript fallback
   gleam export escript
   mv zein zeinc.escript
 
-  # Copy JS build output
-  rm -rf zeinc-build
-  mkdir -p zeinc-build
-  cp -r build/dev/javascript/* zeinc-build/
+  # Bundle all JS modules into a single file with esbuild
+  if command -v npx &>/dev/null; then
+    ENTRY=$(find build/dev/javascript -name 'zein.mjs' | head -1)
+    if [ -n "$ENTRY" ]; then
+      npx --yes esbuild "$ENTRY" --bundle --platform=node --outfile=zeinc-bundle.mjs 2>/dev/null || \
+        warn "esbuild bundling skipped (install it: npm install -g esbuild)"
+    else
+      warn "JS entry not found, bundle skipped"
+    fi
+  else
+    warn "npx not found, bundle skipped"
+  fi
 }
 
 install_zein_binaries() {
@@ -123,7 +131,6 @@ install_zein_binaries() {
       dest="$HOME/.local/bin"
     fi
   fi
-  local build_dest="${dest}/zeinc-build"
 
   local maybe_sudo=""
   if [ ! -w "$dest" ]; then
@@ -131,21 +138,20 @@ install_zein_binaries() {
       maybe_sudo="sudo"
     else
       dest="$HOME/.local/bin"
-      build_dest="$dest/zeinc-build"
     fi
   fi
 
   info "installing to $dest ..."
   $maybe_sudo mkdir -p "$dest"
 
-  # Node.js launcher
+  # Node.js launcher (uses bundled compiler, falls back to escript)
   $maybe_sudo tee "$dest/zeinc" > /dev/null << 'SCRIPT'
 #!/usr/bin/env node
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 try {
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const { main } = await import(join(__dirname, 'zeinc-build/zein/zein.mjs'));
+  const { main } = await import(join(__dirname, 'zeinc-bundle.mjs'));
   main();
 } catch (e) {
   const { execFileSync } = await import('child_process');
@@ -155,7 +161,7 @@ try {
 }
 SCRIPT
 
-  # Shell wrapper
+  # Shell wrapper — compiles then runs via node
   $maybe_sudo tee "$dest/zein" > /dev/null << 'SCRIPT'
 #!/usr/bin/env bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -167,20 +173,21 @@ exec node -e "$JS"
 SCRIPT
   $maybe_sudo chmod 755 "$dest/zein" "$dest/zeinc"
 
-  # JS build directory
-  $maybe_sudo rm -rf "$build_dest"
-  $maybe_sudo cp -r "$DIR/zeinc-build" "$build_dest"
+  # Bundle
+  if [ -f "$DIR/zeinc-bundle.mjs" ]; then
+    $maybe_sudo cp "$DIR/zeinc-bundle.mjs" "$dest/zeinc-bundle.mjs"
+  fi
 
   # Escript fallback
   $maybe_sudo cp "$DIR/zeinc.escript" "$dest/zeinc.escript"
+  $maybe_sudo chmod 644 "$dest/zeinc.escript"
 
-  # Ensure PATH includes dest
   if ! echo "$PATH" | tr ':' '\n' | grep -qx "$dest"; then
     warn "$dest is not in your PATH"
     warn "add this to your shell config: export PATH=\"\$PATH:$dest\""
   fi
 
-  info "installed: zeinc, zein, zeinc.escript, zeinc-build/"
+  info "installed: zeinc, zein, zeinc-bundle.mjs, zeinc.escript"
 }
 
 # ── Main ──────────────────────────────────────────────────────────

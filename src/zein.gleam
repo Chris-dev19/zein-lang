@@ -15,6 +15,10 @@ import typechecker
 @external(javascript, "./zein_ffi.mjs", "halt")
 pub fn halt(code: Int) -> Nil
 
+@external(erlang, "zein_ffi", "run_js")
+@external(javascript, "./zein_ffi.mjs", "run_js")
+pub fn run_js_native(js: String) -> Nil
+
 const version = "0.1.0"
 
 pub fn main() -> Nil {
@@ -136,7 +140,7 @@ fn resolve_imports(mod: ast.Module) -> Result(ast.Module, String) {
 }
 
 fn run_js(js: String) -> Nil {
-  io.print(js)
+  run_js_native(js)
 }
 
 fn diagnostics(filename: String) -> Nil {

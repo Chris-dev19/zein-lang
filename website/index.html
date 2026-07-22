@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zein — a minimal, typed language that compiles to JS</title>
+  <title>Zein — a minimal, typed language</title>
   <style>
     :root {
       --bg: #0d1117;
@@ -296,7 +296,7 @@
   <img src="images/zein-logo.png" alt="Zein logo">
   <h1><em>Zein</em></h1>
   <p class="tagline">Learn Once, Practice Forever</p>
-  <p>A minimal, statically-typed language with Go-like syntax, Hindley-Milner inference, and mutation — compiles to JavaScript. No runtime, no shim, just Node.js.</p>
+  <p>A minimal, statically-typed language with Go-like syntax, Hindley-Milner inference, and mutation — compiles to JavaScript, runs with Node.js. No runtime, no shim.</p>
   <div style="display:flex;gap:8px">
     <a href="#why" class="btn">Why Zein?</a>
     <a href="#install" class="btn ghost">Get Started</a>
@@ -333,10 +333,10 @@
     <li><strong>Hindley-Milner inference</strong> — like Elm, OCaml, Haskell. Types are inferred, never in your way.</li>
     <li><strong>Algebraic data types + pattern matching</strong> — like Rust, OCaml, Haskell. Express complex data naturally.</li>
     <li><strong>Mutable by default</strong> — like Go. No <code>mut</code> noise. Just reassign.</li>
-    <li><strong>Compiles to clean JS</strong> — run anywhere Node runs. No VM, no runtime, no dependencies.</li>
+    <li><strong>Compiles to JavaScript</strong> — runs on Node.js, no VM, no runtime, no dependencies.</li>
   </ul>
 
-  <div class="info tip"><strong>The whole compiler is ~3000 lines of Gleam code.</strong> Read it. Modify it. Learn how compilers work by working on one.</div>
+  <div class="info tip"><strong>The whole compiler is ~2000 lines of Gleam.</strong> Read it. Modify it. Learn how compilers work by working on one.</div>
 
   <h3>Who is Zein for?</h3>
   <div class="grid wide">
@@ -357,8 +357,8 @@
     <div class="card"><h4>Minimal core</h4><p>If, for, while, match, pipe, return, records, lists — everything else is a library. Every feature must earn its place.</p></div>
     <div class="card"><h4>Mutable by default</h4><p>No <code>mut</code> keyword. No immutability dogma. Variables are just boxes — put a new value in when you need to.</p></div>
     <div class="card"><h4>Static typing, inferred</h4><p>Hindley-Milner type inference means you get the safety of static types without writing them. The compiler figures it out.</p></div>
-    <div class="card"><h4>No runtime</h4><p>Zein compiles to bare JavaScript. No VM, no garbage collector shim, no standard library to import. The output is readable JS.</p></div>
-    <div class="card"><h4>Transparent compilation</h4><p>The generated JS looks like what you'd write by hand. You can learn how a compiler works by reading its output.</p></div>
+    <div class="card"><h4>No runtime</h4><p>Zein compiles to plain JavaScript. No VM, no garbage collector, no standard library to import.</p></div>
+    <div class="card"><h4>Transparent compilation</h4><p>The generated JavaScript looks like what you'd write by hand. You can learn how a compiler works by reading its output.</p></div>
     <div class="card"><h4>Go-like syntax</h4><p>Braces, types after names, no semicolons. Syntax is the least interesting part of a language — use one everyone already knows.</p></div>
   </div>
 
@@ -374,20 +374,20 @@
 
   <table>
     <tr><th>Benefit</th><th>Why it matters</th></tr>
-    <tr><td>Understand the whole compiler</td><td>~3000 lines of Gleam. Lexer, parser, typechecker, codegen — all in one project, all readable.</td></tr>
+    <tr><td>Understand the whole compiler</td><td>~2000 lines of Gleam. Lexer, parser, typechecker, codegen — all in one project, all readable.</td></tr>
     <tr><td>Type safety without type annotations</td><td>HM inference catches null errors, type mismatches, and logic bugs — without you writing a single type annotation.</td></tr>
-    <tr><td>No runtime overhead</td><td>Compiles to bare JS. No VM, no garbage collector shim, no standard library dependency. Just <code>node main.zn</code>.</td></tr>
+    <tr><td>No runtime overhead</td><td>Compiles to plain JavaScript. No VM, no garbage collector, no standard library dependency. Just <code>node output.mjs</code>.</td></tr>
     <tr><td>Gradual learning</td><td>Start without types. Add annotations as you go. The compiler always has your back.</td></tr>
-    <tr><td>Great for teaching</td><td>Students can trace a program through every phase: tokens → AST → typed AST → JS output.</td></tr>
+    <tr><td>Great for teaching</td><td>Students can trace a program through every phase: tokens → AST → typed AST → Zig output.</td></tr>
     <tr><td>Mutable when you need it</td><td>No ceremony to mutate a variable. No functional purity dogma. Just assignment.</td></tr>
-    <tr><td>Runs anywhere Node runs</td><td>Desktop, server, Raspberry Pi, CI pipeline — if Node runs, Zein runs.</td></tr>
+    <tr><td>Native binaries</td><td>Desktop, server, Raspberry Pi, CI pipeline — compile once, run anywhere.</td></tr>
   </table>
 
   <h3>Non-goals</h3>
   <p>Zein is <strong>not</strong> trying to be:</p>
   <ul>
     <li>A systems language (no manual memory management, no inline assembly)</li>
-    <li>A replacement for Python or JavaScript in production (no massive package ecosystem)</li>
+    <li>A replacement for Python or JavaScript in production</li>
     <li>A research language (no dependent types, no effect systems, no theorem proving)</li>
     <li>A language you build a FAANG-scale backend with (not yet, anyway)</li>
   </ul>
@@ -396,38 +396,31 @@
 
 <section id="install">
   <h2>Install</h2>
-  <p>You need <strong>Node.js 18+</strong> and <strong>Gleam 1.17+</strong> (requires <strong>Erlang/OTP 27+</strong>).</p>
+  <p>You need <strong>Gleam 1.17+</strong>, <strong>Node.js 18+</strong>, and <strong>Erlang/OTP 27+</strong>.</p>
   <div class="cmd"><span class="prompt">$</span> <span class="text">git clone https://github.com/zein-lang/zein && cd zein && ./install.sh</span></div>
 
-  <table>
-    <tr><th>Platform</th><th>Command</th></tr>
-    <tr><td>Debian / Ubuntu</td><td><span style="font-family:var(--font);font-size:0.85rem">sudo apt install erlang nodejs gleam</span></td></tr>
-    <tr><td>Fedora</td><td><span style="font-family:var(--font);font-size:0.85rem">sudo dnf install erlang nodejs gleam</span></td></tr>
-    <tr><td>Arch Linux</td><td><span style="font-family:var(--font);font-size:0.85rem">sudo pacman -S erlang nodejs gleam</span></td></tr>
-    <tr><td>NixOS</td><td><span style="font-family:var(--font);font-size:0.85rem">nix profile install nixpkgs#erlang nixpkgs#nodejs nixpkgs#gleam</span></td></tr>
-    <tr><td>macOS</td><td><span style="font-family:var(--font);font-size:0.85rem">brew install erlang nodejs gleam</span></td></tr>
-    <tr><td>Windows</td><td><span style="font-family:var(--font);font-size:0.85rem">.\install.ps1</span></td></tr>
-  </table>
-  <p>Windows: open <strong>PowerShell</strong> as administrator, then:</p>
-  <div class="cmd"><span class="prompt">PS&gt;</span> <span class="text">Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</span></div>
-  <div class="cmd"><span class="prompt">PS&gt;</span> <span class="text">git clone https://github.com/zein-lang/zein && cd zein && .\install.ps1</span></div>
-  <p>Requires <strong>Node.js 18+</strong> and <strong>Gleam 1.17+</strong> (requires <strong>Erlang/OTP 27+</strong>). Gleam can be installed via <code>winget install gleam</code>.</p>
+  <p>Or install dependencies manually, then:</p>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">gleam build && gleam export escript && mv zein zeinc.escript && cp zeinc.escript ~/.local/bin/zeinc</span></div>
 
-  <p>After install:</p>
-  <div class="cmd"><span class="prompt">$</span> <span class="text">zein hello.zn</span></div>
+  <table>
+    <tr><th>Platform</th><th>Gleam</th><th>Node.js</th></tr>
+    <tr><td>Debian / Ubuntu</td><td><span style="font-family:var(--font);font-size:0.85rem">sudo apt install gleam</span></td><td><span style="font-family:var(--font);font-size:0.85rem">sudo apt install nodejs</span></td></tr>
+    <tr><td>NixOS</td><td><span style="font-family:var(--font);font-size:0.85rem">nix profile install nixpkgs#gleam</span></td><td><span style="font-family:var(--font);font-size:0.85rem">nix profile install nixpkgs#nodejs</span></td></tr>
+    <tr><td>macOS</td><td><span style="font-family:var(--font);font-size:0.85rem">brew install gleam</span></td><td><span style="font-family:var(--font);font-size:0.85rem">brew install node</span></td></tr>
+  </table>
+
+  <p>Run a Zein program:</p>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">zeinc hello.zn</span></div>
 </section>
 
 <section id="quickstart">
   <h2>Quick Start</h2>
   <p>Create <code>hello.zn</code>:</p>
   <div class="code-block"><span class="lang-label">Zein</span>
-<pre><span class="fn">main</span> {
-  <span class="builtin">print</span>(<span class="str">"hello from Zein!"</span>)
-}</pre></div>
-  <div class="cmd"><span class="prompt">$</span> <span class="text">zein hello.zn</span><br>
-  <span class="text" style="color:var(--muted)">hello from Zein!</span></div>
-  <p>Compile to JS without running:</p>
-  <div class="cmd"><span class="prompt">$</span> <span class="text">zein --compile hello.zn</span></div>
+<pre><span class="kw">fn</span> <span class="fn">main</span>() => <span class="builtin">print</span>(<span class="str">"hello from Zein!"</span>)</pre></div>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">zeinc hello.zn</span></div>
+  <p>Or compile to JavaScript and run manually:</p>
+  <div class="cmd"><span class="prompt">$</span> <span class="text">zeinc --compile hello.zn > output.mjs && node output.mjs</span></div>
 </section>
 
 <section id="language">
@@ -534,7 +527,7 @@ x = <span class="num">10</span>
   <div class="info"><strong>Note:</strong> <code>while</code> is a statement — it returns Nil. Use <code>for</code> when iterating over collections.</div>
 
   <h3 id="records">Records</h3>
-  <p>Records are anonymous structs — create them with <code>TypeName(field: value)</code> syntax. They compile to plain JS objects.</p>
+  <p>Records are anonymous structs — create them with <code>TypeName(field: value)</code> syntax. They compile to Zig structs.</p>
   <div class="code-block"><span class="lang-label">Zein</span>
 <pre><span class="kw">fn</span> <span class="fn">main</span> {
   <span class="kw">let</span> person = <span class="fn">Person</span>(name: <span class="str">"Alice"</span>, age: <span class="num">30</span>)
@@ -560,21 +553,14 @@ x = <span class="num">10</span>
   <div class="info"><strong>Note:</strong> Lists are type-homogeneous — <code>[1, "a"]</code> is a type error. Index access uses <code>list[index]</code> syntax.</div>
 
   <h3 id="methods">Methods &amp; Field Access</h3>
-  <p>Call methods and access fields on any value with dot syntax. Compiles directly to JS property access and method calls.</p>
+  <p>Call methods and access fields on any value with dot syntax. Fields are accessed directly, methods are user-defined functions.</p>
   <div class="code-block"><span class="lang-label">Zein</span>
-<pre><span class="kw">let</span> s = <span class="str">"hello"</span>
+<pre><span class="kw">type</span> <span class="fn">Person</span> { <span class="fn">Person</span>(name: <span class="type">String</span>, age: <span class="type">Int</span>) }
+
+<span class="kw">fn</span> <span class="fn">greet</span>(p) { <span class="str">"hello "</span> <> p.name }
 
 <span class="comment">// field access</span>
-<span class="builtin">print</span>(s.length)
-
-<span class="comment">// method call</span>
-<span class="builtin">print</span>(s.toUpperCase())
-<span class="builtin">print</span>(s.toLowerCase())
-
-<span class="comment">// chaining</span>
-<span class="builtin">print</span>(<span class="str">"  hello  "</span>.trim().toUpperCase())</pre></div>
-
-  <div class="info tip"><strong>Tip:</strong> Since Zein compiles to JS, any JS String, Array, or object method is available via dot syntax.</div>
+<span class="builtin">print</span>(person.name)</pre></div>
 
   <h3 id="matching">Pattern Matching</h3>
   <p><code class="kw">match</code> destructures values with patterns. The wildcard <code>_</code> matches anything. Guards are supported with <code>if</code>.</p>
@@ -611,7 +597,7 @@ x = <span class="num">10</span>
 <span class="builtin">print</span>(apply(<span class="kw">fn</span>(n) { n * <span class="num">2</span> }, <span class="num">3</span>))  <span class="comment">// 6</span></pre></div>
 
   <h3 id="builtins">Built-ins</h3>
-  <p><code class="builtin">print</code> accepts any type, prints via <code>console.log</code>, returns <code class="type">Nil</code>.</p>
+  <p><code class="builtin">print</code> accepts any type, prints to stdout, returns <code class="type">Nil</code>.</p>
   <div class="code-block"><span class="lang-label">Zein</span>
 <pre><span class="builtin">print</span>(<span class="str">"hello"</span>)
 <span class="builtin">print</span>(<span class="num">42</span>)
@@ -626,18 +612,13 @@ x = <span class="num">10</span>
   <div class="showcase-grid">
     <div class="code-block"><span class="lang-label">FizzBuzz</span>
 <pre><span class="kw">fn</span> <span class="fn">fizzbuzz</span>(n: <span class="type">Int</span>) -> <span class="type">String</span> {
-  <span class="kw">if</span> n % <span class="num">15</span> == <span class="num">0</span> {
-    <span class="str">"FizzBuzz"</span>
-  } <span class="kw">else</span> <span class="kw">if</span> n % <span class="num">3</span> == <span class="num">0</span> {
-    <span class="str">"Fizz"</span>
-  } <span class="kw">else</span> <span class="kw">if</span> n % <span class="num">5</span> == <span class="num">0</span> {
-    <span class="str">"Buzz"</span>
-  } <span class="kw">else</span> {
-    int.to_string(n)
-  }
+  <span class="kw">if</span> n % <span class="num">15</span> == <span class="num">0</span> { <span class="str">"FizzBuzz"</span> }
+  <span class="kw">else</span> <span class="kw">if</span> n % <span class="num">3</span> == <span class="num">0</span> { <span class="str">"Fizz"</span> }
+  <span class="kw">else</span> <span class="kw">if</span> n % <span class="num">5</span> == <span class="num">0</span> { <span class="str">"Buzz"</span> }
+  <span class="kw">else</span> { <span class="builtin">print</span>(n) }
 }
 
-<span class="fn">main</span> {
+<span class="kw">fn</span> <span class="fn">main</span>() => {
   <span class="kw">for</span> i <span class="kw">in</span> <span class="num">1</span>..<span class="num">20</span> {
     <span class="builtin">print</span>(fizzbuzz(i))
   }
@@ -647,16 +628,13 @@ x = <span class="num">10</span>
 <pre><span class="kw">fn</span> <span class="fn">collatz</span>(n: <span class="type">Int</span>) {
   <span class="kw">let</span> x = n
   <span class="kw">while</span> x > <span class="num">1</span> {
-    <span class="kw">if</span> x % <span class="num">2</span> == <span class="num">0</span> {
-      x = x / <span class="num">2</span>
-    } <span class="kw">else</span> {
-      x = <span class="num">3</span> * x + <span class="num">1</span>
-    }
+    <span class="kw">if</span> x % <span class="num">2</span> == <span class="num">0</span> { x = x / <span class="num">2</span> }
+    <span class="kw">else</span> { x = <span class="num">3</span> * x + <span class="num">1</span> }
     <span class="builtin">print</span>(x)
   }
 }
 
-<span class="fn">main</span> { collatz(<span class="num">27</span>) }</pre></div>
+<span class="kw">fn</span> <span class="fn">main</span>() => collatz(<span class="num">27</span>)</pre></div>
   </div>
 
   <div class="showcase-grid">
@@ -709,16 +687,16 @@ x = <span class="num">10</span>
   }
 }</pre></div>
 
-    <div class="code-block"><span class="lang-label">String Methods</span>
-<pre><span class="fn">main</span> {
-  <span class="kw">let</span> text = <span class="str">"  Hello, Zein World!  "</span>
+    <div class="code-block"><span class="lang-label">Fibonacci</span>
+<pre><span class="kw">fn</span> <span class="fn">fib</span>(n: <span class="type">Int</span>) -> <span class="type">Int</span> {
+  <span class="kw">match</span> n {
+    <span class="num">0</span> -> <span class="num">0</span>
+    <span class="num">1</span> -> <span class="num">1</span>
+    _  -> fib(n - <span class="num">1</span>) + fib(n - <span class="num">2</span>)
+  }
+}
 
-  <span class="builtin">print</span>(text.trim())
-  <span class="builtin">print</span>(text.trim().toLowerCase())
-  <span class="builtin">print</span>(text.trim().split(<span class="str">" "</span>))
-  <span class="builtin">print</span>(text.trim().startsWith(<span class="str">"Hello"</span>))
-  <span class="builtin">print</span>(text.trim().length)
-}</pre></div>
+<span class="fn">main</span> { <span class="builtin">print</span>(fib(<span class="num">10</span>)) }</pre></div>
   </div>
 </section>
 

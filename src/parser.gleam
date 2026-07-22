@@ -4,9 +4,9 @@ import gleam/option.{None, Some}
 import gleam/result
 import tokenizer.{
   type Token, AndAnd, Arrow, As, Bang, BangEqual, Colon, Comma, Concat, Dot,
-  DotDot, EOF, Else, Equal, EqualEqual, FalseToken, FloatLiteral, Fn, For,
-  Greater, GreaterEqual, Identifier, If, Import, In, IntLiteral, LBrace,
-  LBracket, LParen, Less, LessEqual, Let, Match, Minus, Newline, OrOr,
+  DotDot, DoubleArrow, EOF, Else, Equal, EqualEqual, FalseToken, FloatLiteral,
+  Fn, For, Greater, GreaterEqual, Identifier, If, Import, In, IntLiteral,
+  LBrace, LBracket, LParen, Less, LessEqual, Let, Match, Minus, Newline, OrOr,
   Percent, Pipe, Plus, PlusEqual, MinusEqual, StarEqual, SlashEqual, RBrace,
   RBracket, RParen, Return, Slash, Star, StringLiteral, TrueToken, Type,
   Underscore, While,
@@ -86,6 +86,7 @@ fn token_name(t: Token) -> String {
     Dot -> "."
     Colon -> ":"
     Arrow -> "->"
+    DoubleArrow -> "=>"
     Equal -> "="
     DotDot -> ".."
     IntLiteral(_) -> "<int>"
@@ -270,7 +271,17 @@ fn parse_function_def(
   }
 
   let tokens = skip_newlines(tokens)
-  let assert Ok(#(body, tokens)) = parse_block(tokens)
+  let #(body, tokens) = case tokens {
+    [DoubleArrow, ..rest] -> {
+      let rest = skip_newlines(rest)
+      let assert Ok(#(body, rest)) = parse_expression(rest)
+      #(body, rest)
+    }
+    _ -> {
+      let assert Ok(#(body, tokens)) = parse_block(tokens)
+      #(body, tokens)
+    }
+  }
 
   Ok(#(ast.DefFunction(name, params, ret_type, body), tokens))
 }
@@ -785,7 +796,7 @@ fn parse_primary(
     [Fn, ..rest] -> parse_lambda(rest)
     [Return, ..rest] -> parse_return_expr(rest)
 
-    [LBrace, ..rest] -> parse_block(rest)
+    [LBrace, ..] as all -> parse_block(all)
 
     _ ->
       Error(ParseError(
@@ -897,7 +908,7 @@ fn parse_match_clauses(
     _ -> {
       let assert Ok(#(pattern, tokens)) = parse_pattern(tokens)
       let tokens = skip_newlines(tokens)
-      let assert Ok(#(_, tokens)) = expect(tokens, Arrow)
+      let assert Ok(#(_, tokens)) = expect(tokens, DoubleArrow)
       let tokens = skip_newlines(tokens)
       let assert Ok(#(body, tokens)) = parse_expression(tokens)
       let tokens = skip_newlines(tokens)
@@ -962,7 +973,17 @@ fn parse_lambda(
   }
 
   let tokens = skip_newlines(tokens)
-  let assert Ok(#(body, tokens)) = parse_block(tokens)
+  let #(body, tokens) = case tokens {
+    [DoubleArrow, ..rest] -> {
+      let rest = skip_newlines(rest)
+      let assert Ok(#(body, rest)) = parse_expression(rest)
+      #(body, rest)
+    }
+    _ -> {
+      let assert Ok(#(body, tokens)) = parse_block(tokens)
+      #(body, tokens)
+    }
+  }
   Ok(#(ast.ELambda(params, ret_type, ast.Box(body)), tokens))
 }
 

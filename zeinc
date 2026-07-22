@@ -6,11 +6,8 @@ try {
   const { main } = await import(join(__dirname, 'zeinc-build/zein/zein.mjs'));
   main();
 } catch (e) {
-  // Fallback to escript
   const { execFileSync } = await import('child_process');
   try {
     execFileSync(join(__dirname, 'zeinc.escript'), process.argv.slice(2), { stdio: 'inherit' });
-  } catch {
-    process.exit(1);
-  }
+  } catch { process.exit(1); }
 }

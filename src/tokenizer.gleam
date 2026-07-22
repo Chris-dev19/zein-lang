@@ -110,6 +110,7 @@ pub type Token {
   Dot
   Colon
   Arrow
+  DoubleArrow
   Equal
   DotDot
 
@@ -206,16 +207,28 @@ fn do_tokenize(
         "%" -> do_tokenize(rest, line, col + 1, [Percent, ..tokens], errors)
 
         "=" -> {
-          case starts_with(rest, "=") {
-            Ok(after_eq) ->
+          case starts_with(rest, ">") {
+            Ok(after_darr) ->
               do_tokenize(
-                after_eq,
+                after_darr,
                 line,
                 col + 2,
-                [EqualEqual, ..tokens],
+                [DoubleArrow, ..tokens],
                 errors,
               )
-            _ -> do_tokenize(rest, line, col + 1, [Equal, ..tokens], errors)
+            _ -> {
+              case starts_with(rest, "=") {
+                Ok(after_eq) ->
+                  do_tokenize(
+                    after_eq,
+                    line,
+                    col + 2,
+                    [EqualEqual, ..tokens],
+                    errors,
+                  )
+                _ -> do_tokenize(rest, line, col + 1, [Equal, ..tokens], errors)
+              }
+            }
           }
         }
 
@@ -631,6 +644,7 @@ pub fn token_name(t: Token) -> String {
     Dot -> "."
     Colon -> ":"
     Arrow -> "->"
+    DoubleArrow -> "=>"
     Equal -> "="
     DotDot -> ".."
     IntLiteral(_) -> "<int>"
